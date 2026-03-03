@@ -267,8 +267,17 @@ components:
       type: object
       properties:
         error:
-          type: string
-          example: Unauthorized
+          type: object
+          properties:
+            code:
+              type: string
+              description: 機械読み取り用のエラーコード（SNAKE_UPPER_CASE）
+              example: CATEGORY_NOT_FOUND
+            message:
+              type: string
+              description: 人間向けの説明文（日本語）
+              example: 指定されたカテゴリが見つかりません
+          required: [code, message]
       required: [error]
 
   # ----- Reusable Responses -----
@@ -292,16 +301,21 @@ components:
           schema:
             type: object
             properties:
-              queued:
-                type: boolean
-                example: false
-              reason:
-                type: string
-                example: cooldown
-              retryAfter:
-                type: integer
-                description: クールダウン残り秒数
-            required: [queued, reason, retryAfter]
+              error:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    example: POLLING_COOLDOWN
+                  message:
+                    type: string
+                    example: 手動ポーリングは5分間隔でのみ実行できます
+                  retryAfter:
+                    type: integer
+                    description: クールダウン残り秒数（整数）
+                    example: 180
+                required: [code, message, retryAfter]
+            required: [error]
 
   # ----- Reusable Parameters -----
   parameters:
