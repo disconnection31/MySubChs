@@ -86,7 +86,6 @@
 | エラーコード | HTTP | 発生条件 |
 |---|---|---|
 | `CONTENT_NOT_FOUND` | 404 | 指定IDのコンテンツが存在しない |
-| `WATCH_LATER_ALREADY_EXISTS` | 409 | 既に「後で見る」登録済み |
 
 ### 2.6 手動ポーリング（`/api/categories/{id}/poll`）
 
