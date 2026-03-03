@@ -1,0 +1,929 @@
+openapi: 3.1.0
+info:
+  title: MySubChs API
+  description: >
+    YouTube 登録チャンネル管理アプリ **MySubChs** の REST API 仕様（ドラフト）。
+
+    - 全エンドポイントは NextAuth.js のセッション Cookie による認証が必要
+    - シングルユーザー構成のため、認可（マルチユーザー制御）は行わない
+    - 日本語コメントは設計上の補足として記載
+  version: 0.1.0
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+security:
+  - sessionCookie: []
+
+# ===========================================================
+# Components
+# ===========================================================
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: NextAuth.js が発行するセッション Cookie
+
+  # ----- Schemas -----
+  schemas:
+
+    # --- Category ---
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: ゲーム実況
+        sortOrder:
+          type: integer
+          description: 表示順（昇順）
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        settings:
+          $ref: '#/components/schemas/NotificationSetting'
+      required: [id, name, sortOrder, createdAt, updatedAt]
+
+    # --- Channel ---
+    Channel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        platform:
+          type: string
+          example: youtube
+        platformChannelId:
+          type: string
+          example: UCxxxxxxxxxxxxxxxxxxxxx
+        name:
+          type: string
+          example: サンプルチャンネル
+        iconUrl:
+          type: string
+          nullable: true
+          example: https://yt3.ggpht.com/...
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 所属カテゴリID。null = 未分類
+        isActive:
+          type: boolean
+          description: false = アプリから除外（ソフトデリート）
+        lastPolledAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, platform, platformChannelId, name, isActive, createdAt, updatedAt]
+
+    # --- Content ---
+    Content:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        channelId:
+          type: string
+          format: uuid
+        platform:
+          type: string
+          example: youtube
+        platformContentId:
+          type: string
+          example: dQw4w9WgXcQ
+        title:
+          type: string
+        type:
+          type: string
+          enum: [VIDEO, LIVE]
+          description: >
+            VIDEO = 投稿動画 / LIVE = ライブ配信（予定中・配信中・終了後すべてを含む）。
+            作成後は変更しない（不変フィールド）。
+        status:
+          type: string
+          enum: [UPCOMING, LIVE, ARCHIVED, CANCELLED]
+          description: >
+            UPCOMING = 配信予定 / LIVE = 配信中 / ARCHIVED = アーカイブ済 / CANCELLED = キャンセル。
+            ポーリングのたびに更新される。
+        contentAt:
+          type: string
+          format: date-time
+          description: コンテンツ日時（ソートキー）。VIDEO は publishedAt、LIVE は配信開始前は scheduledStartAt・配信開始後は actualStartAt と同値
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 動画投稿日時（type=VIDEO の場合）
+        scheduledStartAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 配信予定開始時刻（type=LIVE, status=UPCOMING の場合）
+        actualStartAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 実際の配信開始時刻（type=LIVE の場合）
+        actualEndAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 配信終了時刻
+        url:
+          type: string
+          example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        channel:
+          type: object
+          description: チャンネル名・アイコンのインライン表示用
+          properties:
+            name:
+              type: string
+            iconUrl:
+              type: string
+              nullable: true
+          required: [name]
+        watchLater:
+          description: 「後で見る」がONの場合はレコードを返す。OFFまたは未設定の場合は null
+          oneOf:
+            - $ref: '#/components/schemas/WatchLater'
+            - type: 'null'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, channelId, platform, platformContentId, title, type, status, url, createdAt, updatedAt]
+
+    # --- WatchLater ---
+    WatchLater:
+      type: object
+      description: 「後で見る」フラグ情報
+      properties:
+        addedVia:
+          type: string
+          enum: [MANUAL, AUTO]
+          description: MANUAL = ユーザーが手動追加 / AUTO = カテゴリ設定による自動追加
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 失効日時。null = 失効なし（手動追加時は常に null）
+        addedAt:
+          type: string
+          format: date-time
+      required: [addedVia, addedAt]
+
+    # --- NotificationSetting ---
+    NotificationSetting:
+      type: object
+      description: カテゴリごとの通知・ポーリング・後で見る設定（カテゴリ作成時にデフォルト値で自動生成される）
+      properties:
+        notifyOnNewVideo:
+          type: boolean
+          default: true
+          description: 新着動画通知
+        notifyOnLiveStart:
+          type: boolean
+          default: true
+          description: ライブ開始通知
+        notifyOnUpcoming:
+          type: boolean
+          default: false
+          description: 配信予定登録通知
+        watchLaterDefault:
+          type: boolean
+          default: false
+          description: 新着コンテンツに自動で「後で見る」フラグを付ける
+        autoExpireHours:
+          type: integer
+          nullable: true
+          enum: [24, 72, 168, 336]
+          description: >
+            自動失効時間（時間単位）。null = 失効なし。
+            UI上の選択肢: 1日=24h / 3日=72h / 1週間=168h / 2週間=336h。
+            watchLaterDefault=true の場合のみ有効。
+        autoPollingEnabled:
+          type: boolean
+          default: true
+          description: 定期ポーリングの有効/無効。false でも手動ポーリングは常に実行可能
+      required: [notifyOnNewVideo, notifyOnLiveStart, notifyOnUpcoming, watchLaterDefault, autoPollingEnabled]
+
+    # --- UserSetting ---
+    UserSetting:
+      type: object
+      description: ユーザーごとのアプリ設定（初回ログイン時にデフォルト値で自動生成される）
+      properties:
+        pollingIntervalMinutes:
+          type: integer
+          enum: [5, 10, 30, 60]
+          default: 30
+          description: >
+            定期ポーリング間隔（分）。
+            5分・10分はクォータ超過リスクがあるため UI で警告を表示する
+            （チャンネル数 × 1日のポーリング回数 > 9,000 ユニットで警告）。
+        contentRetentionDays:
+          type: integer
+          enum: [30, 60, 90, 180, 365]
+          default: 60
+          description: >
+            コンテンツ保持期間（日）。デフォルト 60日（2ヶ月）。
+            期間を超えた Content は ContentCleanup ジョブが毎日物理削除する。
+      required: [pollingIntervalMinutes, contentRetentionDays]
+
+    # --- Pagination ---
+    PaginationMeta:
+      type: object
+      properties:
+        hasNext:
+          type: boolean
+          description: 次ページが存在するかどうか
+        nextCursor:
+          type: string
+          nullable: true
+          description: 次のページを取得する際に cursor パラメータに渡す値
+      required: [hasNext, nextCursor]
+
+    # --- Error ---
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized
+      required: [error]
+
+  # ----- Reusable Responses -----
+  responses:
+    Unauthorized:
+      description: 認証されていない（セッション Cookie が無効または期限切れ）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: リソースが見つからない（または他ユーザーのリソースへのアクセス）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: クールダウン中のため受け付けられない（手動ポーリングのみ）
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              queued:
+                type: boolean
+                example: false
+              reason:
+                type: string
+                example: cooldown
+              retryAfter:
+                type: integer
+                description: クールダウン残り秒数
+            required: [queued, reason, retryAfter]
+
+  # ----- Reusable Parameters -----
+  parameters:
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ChannelId:
+      name: channelId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ContentId:
+      name: contentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+# ===========================================================
+# Paths
+# ===========================================================
+paths:
+
+  # ============================================================
+  # Categories
+  # ============================================================
+  /categories:
+    get:
+      operationId: listCategories
+      summary: カテゴリ一覧取得
+      description: sortOrder 昇順で全カテゴリを返す。各カテゴリに NotificationSetting を含む。
+      tags: [categories]
+      responses:
+        '200':
+          description: カテゴリ一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      operationId: createCategory
+      summary: カテゴリ作成
+      description: >
+        カテゴリを作成する。sortOrder は既存の最大値+1 を自動採番する。
+        NotificationSetting はデフォルト値で自動生成される。
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: ゲーム実況
+              required: [name]
+      responses:
+        '201':
+          description: 作成されたカテゴリ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /categories/reorder:
+    patch:
+      operationId: reorderCategories
+      summary: カテゴリの表示順を並び替え
+      description: >
+        ドラッグ&ドロップ後の新しい順序を一括更新する。
+        リクエストの orderedIds の順番が sortOrder の昇順に対応する。
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                orderedIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: 新しい表示順のカテゴリ ID リスト（先頭が sortOrder=0）
+              required: [orderedIds]
+      responses:
+        '200':
+          description: 並び替え後のカテゴリ一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+
+    patch:
+      operationId: updateCategory
+      summary: カテゴリ名更新
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+              required: [name]
+      responses:
+        '200':
+          description: 更新されたカテゴリ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deleteCategory
+      summary: カテゴリ削除
+      description: >
+        削除後、所属チャンネルの categoryId は NULL（未分類）になる（onDelete: SetNull）。
+        チャンネル自体は削除されない。
+      tags: [categories]
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /categories/{categoryId}/settings:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+
+    get:
+      operationId: getCategorySettings
+      summary: カテゴリ設定取得
+      description: 通知・ポーリング・後で見る設定を取得する。
+      tags: [categories]
+      responses:
+        '200':
+          description: カテゴリ設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSetting'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      operationId: updateCategorySettings
+      summary: カテゴリ設定更新
+      description: 送信したフィールドのみ更新する（部分更新）。
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notifyOnNewVideo:
+                  type: boolean
+                notifyOnLiveStart:
+                  type: boolean
+                notifyOnUpcoming:
+                  type: boolean
+                watchLaterDefault:
+                  type: boolean
+                autoExpireHours:
+                  type: integer
+                  nullable: true
+                  enum: [24, 72, 168, 336]
+                  description: null を送信すると「失効なし」に設定される
+                autoPollingEnabled:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新されたカテゴリ設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationSetting'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /categories/{categoryId}/poll:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+
+    post:
+      operationId: triggerCategoryPoll
+      summary: カテゴリの手動ポーリング
+      description: >
+        指定カテゴリのチャンネルを対象とした即時ポーリングを BullMQ にエンキューする。
+
+        - `autoPollingEnabled=false` のカテゴリでも実行可能
+        - 同一カテゴリへのリクエストは **5分間のクールダウン** を設ける（Redis TTL で管理）
+        - ジョブは非同期で実行され、このエンドポイントは完了を待たずにすぐ応答する
+        - クライアントは完了後に React Query の refetch で UI を更新する
+      tags: [categories]
+      responses:
+        '200':
+          description: キューへの追加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued:
+                    type: boolean
+                    example: true
+                required: [queued]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  # ============================================================
+  # Channels
+  # ============================================================
+  /channels:
+    get:
+      operationId: listChannels
+      summary: チャンネル一覧取得
+      description: YouTube 登録チャンネルの一覧を返す。
+      tags: [channels]
+      parameters:
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+          description: >
+            フィルター。true = アクティブのみ / false = 解除済みのみ。
+            省略時は true（アクティブのみ）として扱う。
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+          description: >
+            カテゴリ ID でフィルター。
+            `uncategorized` を指定すると未分類チャンネル（categoryId=null）のみ取得。
+      responses:
+        '200':
+          description: チャンネル一覧
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /channels/{channelId}:
+    parameters:
+      - $ref: '#/components/parameters/ChannelId'
+
+    patch:
+      operationId: updateChannel
+      summary: チャンネル更新
+      description: >
+        カテゴリへの割り当て・解除、または登録解除（isActive=false）を行う。
+
+        - `categoryId: null` を送信すると未分類にする
+        - `isActive: false` を送信するとアプリから除外（ソフトデリート）する
+        - YouTube 側の購読状態は変更しない（OAuthスコープが `youtube.readonly` のため）
+      tags: [channels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                  description: 割り当てるカテゴリ ID。null = 未分類
+                isActive:
+                  type: boolean
+                  description: false にするとアプリから除外（ソフトデリート）
+      responses:
+        '200':
+          description: 更新されたチャンネル
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # Contents
+  # ============================================================
+  /contents:
+    get:
+      operationId: listContents
+      summary: コンテンツ一覧取得
+      description: >
+        カーソルベースのページネーション（無限スクロール、1回20件）で
+        動画・ライブの一覧を返す。
+
+        - デフォルトソートはコンテンツ日時（`contentAt`）の降順
+        - status=CANCELLED のコンテンツはデフォルトで除外される
+      tags: [contents]
+      parameters:
+        - name: categoryId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: >
+            カテゴリ ID。`uncategorized` を指定すると未分類チャンネルのコンテンツを取得。
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: 次ページ取得用カーソル（前のレスポンスの meta.nextCursor）
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: 公開日時のソート順（asc = 古い順 / desc = 新しい順）
+        - name: watchLaterOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: true の場合「後で見る」がONのコンテンツのみ返す
+        - name: includeCancelled
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: true の場合 status=CANCELLED のコンテンツも含む
+      responses:
+        '200':
+          description: コンテンツ一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Content'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                required: [data, meta]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # Watch Later
+  # ============================================================
+  /watch-later/{contentId}:
+    parameters:
+      - $ref: '#/components/parameters/ContentId'
+
+    put:
+      operationId: addWatchLater
+      summary: 「後で見る」をONにする（手動追加）
+      description: >
+        `addedVia=MANUAL`、`expiresAt=null`（無期限）でレコードを作成または更新する。
+
+        - 既に AUTO レコードが存在する場合は MANUAL で上書きする（ON CONFLICT UPDATE）
+        - 以前に手動削除（removedVia='MANUAL'）済みのコンテンツを再度 ON にした場合も
+          `removedVia=null` に更新し、ポーリング除外を解除する
+      tags: [watch-later]
+      responses:
+        '200':
+          description: 追加後の Watch Later 情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchLater'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: removeWatchLater
+      summary: 「後で見る」をOFFにする（手動削除）
+      description: >
+        レコードを物理削除するのではなく `removedVia='MANUAL'` を設定してレコードを保持する。
+        これにより以降のポーリングでの自動再追加が防止される。
+      tags: [watch-later]
+      responses:
+        '204':
+          description: 削除成功（フラグOFF）
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Watch Later レコードが存在しない（すでにOFF）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ============================================================
+  # Notifications
+  # ============================================================
+  /notifications/subscriptions:
+    post:
+      operationId: createPushSubscription
+      summary: Web Push サブスクリプション登録
+      description: >
+        ブラウザから取得した PushSubscription オブジェクトの情報を登録する。
+        同一エンドポイントが既に登録済みの場合は upsert する。
+      tags: [notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endpoint:
+                  type: string
+                  format: uri
+                  description: Push 通知エンドポイント URL
+                p256dh:
+                  type: string
+                  description: 公開鍵（Base64url）
+                auth:
+                  type: string
+                  description: 認証シークレット（Base64url）
+                userAgent:
+                  type: string
+                  description: 登録デバイスの User-Agent（任意）
+              required: [endpoint, p256dh, auth]
+      responses:
+        '201':
+          description: サブスクリプション登録成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /notifications/subscriptions/{subscriptionId}:
+    parameters:
+      - name: subscriptionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      operationId: deletePushSubscription
+      summary: Web Push サブスクリプション削除
+      tags: [notifications]
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /notifications/test:
+    post:
+      operationId: sendTestNotification
+      summary: テスト通知送信
+      description: >
+        「通知の設定が完了しています」という固定テキストで Web Push を送信する。
+        デバイスへの通知許可確認に使用。
+        登録済みの全サブスクリプション宛に送信する。
+      tags: [notifications]
+      responses:
+        '200':
+          description: 送信成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # Settings
+  # ============================================================
+  /settings:
+    get:
+      operationId: getSettings
+      summary: ユーザー設定取得
+      tags: [settings]
+      responses:
+        '200':
+          description: ユーザー設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSetting'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      operationId: updateSettings
+      summary: ユーザー設定更新
+      description: >
+        送信したフィールドのみ更新する（部分更新）。
+        ポーリング間隔の変更は次のジョブサイクル開始時から反映される（即時反映ではない）。
+        コンテンツ保持期間の変更は次回 ContentCleanup ジョブ実行時から反映される。
+      tags: [settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pollingIntervalMinutes:
+                  type: integer
+                  enum: [5, 10, 30, 60]
+                contentRetentionDays:
+                  type: integer
+                  enum: [30, 60, 90, 180, 365]
+      responses:
+        '200':
+          description: 更新されたユーザー設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSetting'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /settings/sync-channels:
+    post:
+      operationId: syncChannels
+      summary: 登録チャンネルの手動再同期
+      description: >
+        YouTube Data API から現在の登録チャンネル一覧を全件取得し、DB を同期する。
+
+        1. DB に存在しないチャンネル → 新規登録（isActive=true）
+        2. DB に存在し isActive=false のチャンネル → YouTube でまだ登録中なら isActive=true に復元
+        3. DB に存在し isActive=true のチャンネル → YouTube で登録解除済みなら isActive=false に
+        4. チャンネル名・アイコン URL などのメタデータを最新の状態に更新
+
+        **クォータ消費**: 約 4 units/回（1日クォータの 0.04%。無視できるレベル）
+      tags: [settings]
+      responses:
+        '200':
+          description: 同期完了
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  added:
+                    type: integer
+                    description: 新規追加チャンネル数
+                  restored:
+                    type: integer
+                    description: isActive=false → true に復元したチャンネル数
+                  deactivated:
+                    type: integer
+                    description: isActive=true → false に変更したチャンネル数
+                  updated:
+                    type: integer
+                    description: メタデータを更新したチャンネル数
+                required: [added, restored, deactivated, updated]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ===========================================================
+# Tags（ドキュメント表示順）
+# ===========================================================
+tags:
+  - name: categories
+    description: カテゴリ管理（CRUD・並び替え・設定・手動ポーリング）
+  - name: channels
+    description: チャンネル管理（一覧取得・カテゴリ割り当て・登録解除）
+  - name: contents
+    description: コンテンツ一覧（動画・ライブ）
+  - name: watch-later
+    description: 「後で見る」フラグの手動 ON/OFF
+  - name: notifications
+    description: Web Push サブスクリプション管理・テスト通知
+  - name: settings
+    description: ユーザー設定・チャンネル手動同期
