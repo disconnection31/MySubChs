@@ -275,7 +275,7 @@ flowchart TD
    - UPCOMING 延期（`scheduledStartAt` が変更された場合）: `contentAt` も同値で更新
    - `UPCOMING → LIVE` 遷移時: `actualStartAt = liveStreamingDetails.actualStartTime`（Step ⑤ の `videos.list` で取得した値）、`contentAt = actualStartAt`（`liveStreamingDetails.actualStartTime` が NULL の場合は `scheduledStartAt` にフォールバック）
 7. 新着コンテンツについて、チャンネルの所属カテゴリの `NotificationSetting` を参照し `watchLaterDefault=true` であれば `WatchLater` レコードを自動生成。`autoExpireHours` はそのカテゴリの設定値を直接使用する
-   - **ただし、当該コンテンツの `WatchLater` レコードが既に存在し `removedVia IS NOT NULL` の場合は再追加しない**（ユーザーが手動削除済みのコンテンツを尊重する）
+   - **ただし、`removedVia IS NOT NULL` のレコードが存在する場合は再追加しない**（詳細は [database.md §4](./database.md)）
    - 未分類チャンネル（`categoryId IS NULL`）は `watchLaterDefault` の設定がないため自動フラグ付けは行わない
 8. 通知ONのカテゴリのチャンネルに以下のイベントがあればWeb Push送信：
    - `notifyOnNewVideo = true` かつ新しい `type=VIDEO` コンテンツが追加された場合
@@ -352,10 +352,7 @@ stateDiagram-v2
 
 ### YouTube APIクォータ管理
 
-- `search.list` (100 units/call) は使用しない
-- `playlistItems.list` (1 unit/call) を使用（最新50件取得。`maxResults=50`。`maxResults` の値に関わらずコストは1 unit/call で変わらない）
-- `videos.list` (1 unit/最大50件) を使用：新着コンテンツの `type`・`scheduledStartAt` 取得 + 既存 `status=LIVE` コンテンツのステータス確認 + `scheduledStartAt <= now()` の既存 `status=UPCOMING` コンテンツのステータス確認（バッチ処理）。`scheduledStartAt > now()` の UPCOMING コンテンツには呼び出さない
-- `channels.list` (1 unit/最大50件) は未キャッシュチャンネルを50件ずつバッチ処理して初回のみ使用（`uploadsPlaylistId` キャッシュ後は不要）
+エンドポイント別のコストと利用方針の詳細は [ref/youtube-api.md §7](../ref/youtube-api.md) を参照。
 
 **クォータ消費量の試算（想定チャンネル数〜100本）:**
 

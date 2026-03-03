@@ -462,9 +462,7 @@ paths:
     delete:
       operationId: deleteCategory
       summary: カテゴリ削除
-      description: >
-        削除後、所属チャンネルの categoryId は NULL（未分類）になる（onDelete: SetNull）。
-        チャンネル自体は削除されない。
+      description: 削除後、所属チャンネルは未分類になる。チャンネル自体は削除されない。
       tags: [categories]
       responses:
         '204':
@@ -859,10 +857,7 @@ paths:
     patch:
       operationId: updateSettings
       summary: ユーザー設定更新
-      description: >
-        送信したフィールドのみ更新する（部分更新）。
-        ポーリング間隔の変更は次のジョブサイクル開始時から反映される（即時反映ではない）。
-        コンテンツ保持期間の変更は次回 ContentCleanup ジョブ実行時から反映される。
+      description: 送信したフィールドのみ更新する（部分更新）。
       tags: [settings]
       requestBody:
         required: true
