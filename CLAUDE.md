@@ -35,18 +35,7 @@ MySubChs is a personal web app for organizing YouTube subscriptions into custom 
 
 YouTube Data API v3 provides 10,000 units/day free. This is a hard limit with no automatic reset until next day UTC. Exceeding it causes all API calls to fail for the rest of the day.
 
-### Cost Reference
-| Endpoint | Cost |
-|---|---|
-| `playlistItems.list` | 1 unit |
-| `videos.list` | 1 unit |
-| `channels.list` | 1 unit |
-| `search.list` | **100 units — NEVER USE** |
-
-> References (as of 2026-03-03 — verify for updates):
-> - Quota overview: https://developers.google.com/youtube/v3/getting-started#quota
-> - Per-endpoint cost table: https://developers.google.com/youtube/v3/determine_quota_cost
-> - Quota usage dashboard: https://console.developers.google.com/iam-admin/quotas
+For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/youtube-api.md).
 
 ### Mandatory Rules for All Implementations
 - **Never use `search.list`**: Cost is prohibitive (100 units). Use `playlistItems.list` instead.
