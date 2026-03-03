@@ -31,6 +31,36 @@ MySubChs is a personal web app for organizing YouTube subscriptions into custom 
 - Manual polling has 5-minute cooldown per category (Redis TTL).
 - Polling job deduplication via fixed `jobId` + Redis lock.
 
+## YouTube API Quota — Implementation Rules
+
+YouTube Data API v3 provides 10,000 units/day free. This is a hard limit with no automatic reset until next day UTC. Exceeding it causes all API calls to fail for the rest of the day.
+
+### Cost Reference
+| Endpoint | Cost |
+|---|---|
+| `playlistItems.list` | 1 unit |
+| `videos.list` | 1 unit |
+| `channels.list` | 1 unit |
+| `search.list` | **100 units — NEVER USE** |
+
+> References (as of 2026-03-03 — verify for updates):
+> - Quota overview: https://developers.google.com/youtube/v3/getting-started#quota
+> - Per-endpoint cost table: https://developers.google.com/youtube/v3/determine_quota_cost
+> - Quota usage dashboard: https://console.developers.google.com/iam-admin/quotas
+
+### Mandatory Rules for All Implementations
+- **Never use `search.list`**: Cost is prohibitive (100 units). Use `playlistItems.list` instead.
+- **Cache aggressively**: `uploadsPlaylistId` must be cached in DB after first fetch. Never re-fetch if cached.
+- **No redundant calls**: Do not call the same endpoint for data already available in DB.
+- **Batch requests where possible**: `videos.list` accepts up to 50 `id` parameters per call — always batch.
+- **Minimize polling scope**: Poll only channels in active categories (uncategorized channels excluded).
+- **No quota spend on read-only UI**: Fetching data for display must use DB, not YouTube API.
+
+### Before Implementing Any Feature That Calls YouTube API
+1. Calculate the quota cost per call and per day.
+2. Confirm the cost fits within the daily budget given the polling interval.
+3. Document the cost in code comments near the API call site.
+
 ## Documentation
 
 All specs are in Japanese. Key documents:
@@ -38,6 +68,10 @@ All specs are in Japanese. Key documents:
 - `docs/architecture.md` - Technical design, polling flow, state machines, quota calculations
 - `docs/database.md` - DB schema, Prisma models, design considerations
 - `docs/openapi.yaml` - REST API specification (OpenAPI 3.1)
+- `docs/ui/dashboard.md` - UI spec: main dashboard screen
+- `docs/ui/channels.md` - UI spec: channel management screen
+- `docs/ui/categories.md` - UI spec: category management screen
+- `docs/ui/settings.md` - UI spec: settings screen
 - `ref/youtube-api.md` - YouTube Data API v3 quota/endpoint reference
 
 ## Directory Structure (planned)
@@ -59,11 +93,26 @@ prisma/             # Prisma schema
 
 This project follows AI-driven spec-based development. Claude Code autonomously handles design and implementation; the developer makes requirements/spec decisions and approves designs.
 
+### Role Division
+
+- **Claude Code (AI)**: Implementation and technical design. Responsible for writing code, proposing architecture, and keeping specs actionable.
+- **Developer**: Spec decisions and design approval. All requirements decisions and spec changes require developer confirmation.
+
+### Spec Quality — Written for AI Implementation
+
+The `docs/` specs must be written so that Claude Code can implement them without ambiguity. When reading specs:
+
+- **If a spec is ambiguous or underspecified**: Do NOT guess or make assumptions. Ask the developer to clarify, then update the spec with the agreed answer before implementing.
+- **If a spec is redundant or contradictory**: Flag it to the developer and propose a correction. Do not silently ignore it.
+- Claude Code may propose improvements to spec clarity, but must get developer approval before modifying any `docs/` file.
+
 ### Implementation Flow
 
 1. **Plan mode required**: Always enter plan mode (present implementation plan → get developer approval) before writing code for non-trivial tasks. Only trivial fixes (typos, formatting) are exempt.
 2. **Always ask on spec ambiguity**: If you find ambiguity or contradiction in the specs, never guess — always ask the developer before proceeding.
-3. **Keep specs and code in sync**: When a spec change is decided during implementation, update the relevant `docs/` files in the same commit or PR as the code change. Never let specs and code diverge.
+3. **Never decide specs unilaterally**: Do not make requirements decisions on your own. When a spec gap is discovered mid-implementation, stop and ask the developer.
+4. **Confirm before creating or modifying specs**: When creating a new `docs/` file or making non-trivial edits to existing ones, always confirm the intended direction with the developer first.
+5. **Keep specs and code in sync**: When a spec change is decided during implementation, update the relevant `docs/` files in the same commit or PR as the code change. Never let specs and code diverge.
 
 ### Spec Authority
 
@@ -72,6 +121,7 @@ The `docs/` directory is the Single Source of Truth. When in doubt, consult in t
 2. `docs/architecture.md` — Technical design, polling flow, state machines
 3. `docs/database.md` — DB schema, Prisma models
 4. `docs/openapi.yaml` — REST API specification
+5. `docs/ui/*.md` — UI specifications per screen
 
 ### Git Workflow
 
