@@ -619,9 +619,9 @@ paths:
       description: >
         YouTube 登録チャンネルの一覧を返す。
 
-        デフォルトソート順は `categoryId ASC, name ASC`（カテゴリ別グルーピング＋カテゴリ内はチャンネル名の昇順）。
-        ソートはサーバー側で行い、クライアントは返却順をそのまま使用する。
-        未分類チャンネル（categoryId=null）はソート順の末尾に配置される。
+        レスポンスのソート順は未定義。クライアントが `GET /api/categories` の
+        `sortOrder` 順にグルーピング・並び替えを行う（カテゴリ内はチャンネル名の昇順）。
+        未分類チャンネル（categoryId=null）のグループは末尾に配置する。
       tags: [channels]
       parameters:
         - name: isActive
