@@ -269,6 +269,11 @@ flowchart TD
    ```
 
 6. **DBへのUPSERT**：取得したコンテンツをDBに登録・更新（新着は `INSERT`、既存は `title`・`status`・各タイムスタンプを `UPDATE`。配信予定のタイトル変更にも対応）
+   `url`（コンテンツURL）の設定ルール：
+   - INSERT 時にのみ設定し、以降は更新しない（不変）
+   - プラットフォームごとの生成ルール：
+     - YouTube: `https://www.youtube.com/watch?v={platformContentId}`（`type`・`status` によらず同一フォーマット）
+     - Twitch（将来対応時）: VOD は `https://www.twitch.tv/videos/{platformContentId}`。ライブ配信は `platformContentId` ではなくチャンネル名が必要なため、実装時に別途設計する
    `contentAt`（ソートキー）の設定ルール：
    - `type=VIDEO` 新着 INSERT: `contentAt = publishedAt`（NULL の場合は `createdAt`）
    - `type=LIVE` 新着 INSERT（`status=UPCOMING`）: `contentAt = scheduledStartAt`
