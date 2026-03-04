@@ -391,7 +391,13 @@ POST /api/categories/{categoryId}/poll
 - 対象チャンネル: 指定カテゴリに属するチャンネルのみ（`Channel.categoryId = categoryId`）
 - BullMQ に one-off ジョブとしてエンキュー。定期ポーリングジョブと同一ロジックを再利用し、対象チャンネルリストのみ絞り込む
 - レスポンス: `{ queued: true }` を即時返却（ジョブ完了を待たない）
-- クライアントはポーリング完了後に React Query の refetch でUIを更新する
+
+**ジョブ識別・保持設定:**
+
+- jobId: `manual-poll:{categoryId}`（BullMQ でのジョブルックアップを可能にする）
+- エンキュー時のジョブ保持設定:
+  - `removeOnComplete: { age: 60 }`（完了後60秒保持。クライアントの完了検知に十分な時間）
+  - `removeOnFailed: { age: 300 }`（失敗後5分保持）
 
 **クールダウン（クォータ過剰消費防止）:**
 
@@ -399,6 +405,42 @@ POST /api/categories/{categoryId}/poll
 - 実装：Redis に `manual-poll:cooldown:{categoryId}` キーを TTL=300秒 でセット
 - クールダウン中のリクエストは `{ queued: false, reason: "cooldown", retryAfter: <残り秒数> }` を返す（HTTP 429）
 - UIはこのレスポンスを受けてボタンを非活性化し残り時間を表示する
+
+**ジョブステータス確認 API:**
+
+```
+GET /api/categories/{categoryId}/poll/status
+```
+
+クライアントが手動ポーリングの完了を検知するためのエンドポイント。
+
+レスポンス:
+```json
+{
+  "status": "none" | "waiting" | "active" | "completed" | "failed",
+  "cooldownRemaining": 180
+}
+```
+
+- `status`: `queue.getJob("manual-poll:{categoryId}")` でジョブを取得し `job.getState()` で取得。ジョブが存在しない場合は `"none"`
+- `cooldownRemaining`: Redis の `manual-poll:cooldown:{categoryId}` TTL から計算した残クールダウン秒数（0 = クールダウンなし）
+
+**クライアント側のポーリング完了検知フロー:**
+
+POST 後:
+1. ボタンを「実行中」状態（スピナー）に設定
+2. `GET .../poll/status` を 3秒間隔でポーリング開始
+
+ステータス確認ループ:
+- `status = "active"` or `"waiting"` → 「実行中」状態を維持、ポーリング継続
+- `status = "completed"` or `"none"` → ポーリング停止 → コンテンツ一覧を refetch → `cooldownRemaining > 0` ならボタンを「クールダウン中」状態へ
+- `status = "failed"` → ポーリング停止 → エラートースト表示 → コンテンツ一覧を refetch → `cooldownRemaining > 0` ならボタンを「クールダウン中」状態へ
+
+ページロード時:
+- `GET .../poll/status` を1回呼び出して状態を復元:
+  - `status = "active"` or `"waiting"` → 「実行中」状態でポーリング再開（3秒間隔）
+  - `status = "completed"` or `"none"` かつ `cooldownRemaining > 0` → 「クールダウン中」状態で表示
+  - それ以外 → 通常状態
 
 ### ポーリングジョブの重複実行防止
 
