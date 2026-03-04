@@ -120,8 +120,31 @@
 - クリック後、`POST /api/categories/{categoryId}/poll` を呼び出す
 - ポーリングはバックグラウンドで非同期実行される（APIはジョブのキューへの追加成功のみ応答する）
 - APIから `429 Too Many Requests` が返った場合（クールダウン中）：ボタンをクールダウン状態にし、`retryAfter` 秒のカウントダウンを表示する
-- ポーリング実行後、TanStack Query の refetch でコンテンツ一覧が自動更新される
-- エラー時はトースト通知でメッセージを表示する
+
+**POST 後のジョブ完了検知:**
+
+1. ボタンを「実行中」状態（スピナー・無効化）に設定
+2. `GET /api/categories/{categoryId}/poll/status` を **3秒間隔・最大100回**（上限5分）でポーリング開始
+
+ステータス確認ループの遷移ルール:
+
+| `status` 値 / 条件 | 動作 |
+|---|---|
+| `"active"` / `"waiting"` | 「実行中」状態を維持、ポーリング継続 |
+| `"completed"` / `"none"` | ポーリング停止 → コンテンツ一覧を refetch → `cooldownRemaining > 0` なら「クールダウン中」状態へ |
+| `"failed"` | ポーリング停止 → エラートーストを表示 → コンテンツ一覧を refetch → `cooldownRemaining > 0` なら「クールダウン中」状態へ |
+| 100回到達（タイムアウト） | ポーリング停止 → タイムアウトエラートーストを表示 → 通常状態に戻す |
+
+- `"none"` は `"completed"` と同じ扱い（ジョブが既にクリーンアップされた状態）。`cooldownRemaining` で状態を判断する
+- `"failed"` 時もクールダウンは継続（キュー登録時点でクールダウン開始済みのため）
+
+**ページロード時の状態復元:**
+
+1. `GET /api/categories/{categoryId}/poll/status` を1回呼び出す
+2. 結果に応じてボタン初期状態を決定:
+   - `status = "active"` or `"waiting"` → 「実行中」状態でポーリング再開（3秒間隔・最大100回）
+   - `status = "completed"` or `"none"` かつ `cooldownRemaining > 0` → 「クールダウン中」状態で表示
+   - それ以外 → 通常状態
 
 ### 5.3 コンテンツリスト
 
@@ -278,5 +301,6 @@
 | GET | `/api/categories` | サイドバーのカテゴリ一覧取得 |
 | GET | `/api/contents` | コンテンツ一覧取得（無限スクロール） |
 | POST | `/api/categories/{categoryId}/poll` | 手動ポーリング実行 |
+| GET | `/api/categories/{categoryId}/poll/status` | ポーリングジョブステータス確認 |
 | PUT | `/api/watch-later/{contentId}` | 「後で見る」をONにする |
 | DELETE | `/api/watch-later/{contentId}` | 「後で見る」をOFFにする |

@@ -545,7 +545,7 @@ paths:
         - `autoPollingEnabled=false` のカテゴリでも実行可能
         - 同一カテゴリへのリクエストは **5分間のクールダウン** を設ける（Redis TTL で管理）
         - ジョブは非同期で実行され、このエンドポイントは完了を待たずにすぐ応答する
-        - クライアントは完了後に React Query の refetch で UI を更新する
+        - クライアントは `GET /categories/{categoryId}/poll/status` でジョブ完了を検知する
       tags: [categories]
       responses:
         '200':
@@ -565,6 +565,49 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+
+  /categories/{categoryId}/poll/status:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+
+    get:
+      operationId: getCategoryPollStatus
+      summary: カテゴリのポーリングジョブステータス取得
+      description: >
+        手動ポーリングジョブの現在のステータスと残クールダウン秒数を返す。
+        クライアントがジョブ完了を検知するために使用する（3秒間隔でポーリング）。
+
+        - `status` は BullMQ の `queue.getJob("manual-poll:{categoryId}")` から取得
+        - ジョブが存在しない（クリーンアップ済み）場合は `status: "none"` を返す
+        - `cooldownRemaining` は Redis の `manual-poll:cooldown:{categoryId}` TTL から計算
+      tags: [categories]
+      responses:
+        '200':
+          description: ポーリングジョブステータス
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, cooldownRemaining]
+                properties:
+                  status:
+                    type: string
+                    enum: [none, waiting, active, completed, failed]
+                    description: >
+                      none = ジョブなし（クリーンアップ済みを含む） /
+                      waiting = キュー待機中 /
+                      active = 実行中 /
+                      completed = 完了 /
+                      failed = 失敗
+                  cooldownRemaining:
+                    type: integer
+                    minimum: 0
+                    description: 残クールダウン秒数（0 = クールダウンなし）
+                    example: 180
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ============================================================
   # Channels
