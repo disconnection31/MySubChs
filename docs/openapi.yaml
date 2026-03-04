@@ -616,7 +616,12 @@ paths:
     get:
       operationId: listChannels
       summary: チャンネル一覧取得
-      description: YouTube 登録チャンネルの一覧を返す。
+      description: >
+        YouTube 登録チャンネルの一覧を返す。
+
+        レスポンスのソート順は未定義。クライアントが `GET /api/categories` の
+        `sortOrder` 順にグルーピング・並び替えを行う（カテゴリ内はチャンネル名の昇順）。
+        未分類チャンネル（categoryId=null）のグループは末尾に配置する。
       tags: [channels]
       parameters:
         - name: isActive
