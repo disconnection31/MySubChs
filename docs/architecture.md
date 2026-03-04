@@ -384,6 +384,7 @@ stateDiagram-v2
 ### WatchLaterCleanup ジョブ
 
 - BullMQ Repeatable Job で毎日定期実行
+- **実行時刻**: 毎日 JST 04:00（cron式: `0 19 * * *` UTC）
 - **`expiresAt < NOW()` のレコードを即時一括削除（グレース期間なし）**
 - `removedVia IS NOT NULL` のレコードは失効日時に関わらず削除しない（ポーリング除外の記録として永続保持）
 - 補足：`Content` が ContentCleanup ジョブで物理削除された場合、紐付く `WatchLater` は `onDelete: Cascade` で自動削除されるため、WatchLaterCleanup との処理の重複はない
@@ -391,6 +392,7 @@ stateDiagram-v2
 ### ContentCleanup ジョブ
 
 - BullMQ Repeatable Job で**毎日1回**定期実行
+- **実行時刻**: 毎日 JST 03:00（cron式: `0 18 * * *` UTC）
 - `UserSetting.contentRetentionDays` を参照して削除基準日を計算し、基準日より古い `Content` を物理削除する
 - **削除基準日時**:
   - `type=VIDEO`: `publishedAt`（NULL の場合は `createdAt` にフォールバック）
