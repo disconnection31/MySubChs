@@ -1,6 +1,6 @@
 ---
 name: github-issue-resolver
-description: GitHubのIssueを対応する。「#123を対応して」「このIssueを直して」と言われたときに使用する。
+description: GitHubのIssueを対応する。「Issue #123を対応して」「このIssueを直して」と言われたときに使用する。
 ---
 
 # GitHub Issue 対応
