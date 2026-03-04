@@ -171,7 +171,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-      required: [id, channelId, platform, platformContentId, title, type, status, url, createdAt, updatedAt]
+      required: [id, channelId, platform, platformContentId, title, type, status, contentAt, url, createdAt, updatedAt]
 
     # --- WatchLater ---
     WatchLater:
