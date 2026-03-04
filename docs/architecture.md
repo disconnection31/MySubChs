@@ -429,16 +429,17 @@ GET /api/categories/{categoryId}/poll/status
 
 POST 後:
 1. ボタンを「実行中」状態（スピナー）に設定
-2. `GET .../poll/status` を 3秒間隔でポーリング開始
+2. `GET .../poll/status` を **3秒間隔・最大100回** でポーリング開始（上限 = 5分）
 
 ステータス確認ループ:
 - `status = "active"` or `"waiting"` → 「実行中」状態を維持、ポーリング継続
 - `status = "completed"` or `"none"` → ポーリング停止 → コンテンツ一覧を refetch → `cooldownRemaining > 0` ならボタンを「クールダウン中」状態へ
 - `status = "failed"` → ポーリング停止 → エラートースト表示 → コンテンツ一覧を refetch → `cooldownRemaining > 0` ならボタンを「クールダウン中」状態へ
+- 100回到達（タイムアウト）→ ポーリング停止 → タイムアウトエラートースト表示 → 通常状態に戻す
 
 ページロード時:
 - `GET .../poll/status` を1回呼び出して状態を復元:
-  - `status = "active"` or `"waiting"` → 「実行中」状態でポーリング再開（3秒間隔）
+  - `status = "active"` or `"waiting"` → 「実行中」状態でポーリング再開（3秒間隔・残回数はリセットして最大100回）
   - `status = "completed"` or `"none"` かつ `cooldownRemaining > 0` → 「クールダウン中」状態で表示
   - それ以外 → 通常状態
 
