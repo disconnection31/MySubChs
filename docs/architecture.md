@@ -150,7 +150,7 @@ type Platform = 'youtube' | 'twitch' // 将来追加
 1. ユーザーが「Googleでログイン」ボタンをクリック
 2. NextAuth → Google OAuth 2.0 認証
 3. コールバック：アクセストークン・リフレッシュトークンをDBに保存
-4. セッション確立（JWT or DB Session）
+4. セッション確立（JWT）
 5. 以降のAPI呼び出しはセッションで認証
 6. アクセストークン期限切れ時はリフレッシュトークンで自動更新
 ```
