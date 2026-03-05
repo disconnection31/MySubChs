@@ -263,16 +263,9 @@ components:
         - $ref: '#/components/schemas/UserSetting'
         - type: object
           description: >
-            ユーザー設定に加え、設定画面の初回ロード時にのみ必要な統計情報を含む拡張スキーマ。
+            ユーザー設定に加え、クォータ警告表示に必要な統計情報を含む拡張スキーマ。
             GET /settings でのみ返される。PATCH /settings では返さない。
           properties:
-            globalAffectedChannelCount:
-              type: integer
-              description: >
-                グローバルデフォルト（NotificationSetting.pollingIntervalMinutes IS NULL）を使用中の
-                カテゴリに所属するアクティブチャンネル数の合計。
-                グローバル設定変更時のクォータ再計算に使用する。
-              example: 45
             estimatedDailyQuota:
               type: integer
               description: >
@@ -287,7 +280,13 @@ components:
                 クォータ警告しきい値（ユニット）。バックエンドで定義した名前付き定数（YOUTUBE_QUOTA_WARNING_THRESHOLD）を返す。
                 フロントエンドはこの値を使って警告判定を行う（ハードコード禁止）。
               example: 9000
-          required: [globalAffectedChannelCount, estimatedDailyQuota, quotaWarningThreshold]
+            quotaDailyLimit:
+              type: integer
+              description: >
+                YouTube Data API v3 の1日あたりのクォータ上限（ユニット）。バックエンドで定義した名前付き定数（YOUTUBE_QUOTA_DAILY_LIMIT）を返す。
+                フロントエンドはこの値をクォータ使用量の表示分母として使用する（ハードコード禁止）。
+              example: 10000
+          required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit]
 
     # --- Pagination ---
     PaginationMeta:
