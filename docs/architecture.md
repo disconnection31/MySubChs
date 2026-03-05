@@ -515,7 +515,7 @@ POST /api/categories/{categoryId}/poll
 
 - 同一カテゴリへの手動ポーリングは最低**5分間のクールダウン**を設ける
 - 実装：Redis に `manual-poll:cooldown:{categoryId}` キーを TTL=300秒 でセット
-- クールダウン中のリクエストは `{ queued: false, reason: "cooldown", retryAfter: <残り秒数> }` を返す（HTTP 429）
+- クールダウン中のリクエストは HTTP 429 を返す（レスポンスボディは openapi.yaml の `Error` スキーマ参照）
 - UIはこのレスポンスを受けてボタンを非活性化し残り時間を表示する
 
 **ジョブステータス確認 API:**
