@@ -225,6 +225,14 @@ components:
           type: boolean
           default: true
           description: 定期ポーリングの有効/無効。false でも手動ポーリングは常に実行可能
+        pollingIntervalMinutes:
+          type: integer
+          nullable: true
+          enum: [5, 10, 30, 60]
+          description: >
+            カテゴリ個別のポーリング間隔（分）。
+            null = UserSetting.pollingIntervalMinutes（グローバルデフォルト）を使用。
+            null を送信するとグローバルデフォルトに戻す。
       required: [notifyOnNewVideo, notifyOnLiveStart, notifyOnUpcoming, watchLaterDefault, autoPollingEnabled]
 
     # --- UserSetting ---
@@ -258,20 +266,27 @@ components:
             ユーザー設定に加え、設定画面の初回ロード時にのみ必要な統計情報を含む拡張スキーマ。
             GET /settings でのみ返される。PATCH /settings では返さない。
           properties:
-            activeChannelCount:
+            globalAffectedChannelCount:
               type: integer
               description: >
-                アクティブなチャンネル数（isActive=true のチャンネル数）。
-                バックエンドで COUNT クエリを実行して返す。
-                クォータ警告の判定（activeChannelCount × 1日ポーリング回数 > quotaWarningThreshold）に使用する。
-              example: 42
+                グローバルデフォルト（NotificationSetting.pollingIntervalMinutes IS NULL）を使用中の
+                カテゴリに所属するアクティブチャンネル数の合計。
+                グローバル設定変更時のクォータ再計算に使用する。
+              example: 45
+            estimatedDailyQuota:
+              type: integer
+              description: >
+                全カテゴリ合算の推定1日クォータ消費量（ユニット）。
+                バックエンドで各カテゴリの effectiveInterval とチャンネル数から計算して返す。
+                クォータ警告の判定（estimatedDailyQuota > quotaWarningThreshold）に使用する。
+              example: 4900
             quotaWarningThreshold:
               type: integer
               description: >
                 クォータ警告しきい値（ユニット）。バックエンドで定義した名前付き定数（YOUTUBE_QUOTA_WARNING_THRESHOLD）を返す。
                 フロントエンドはこの値を使って警告判定を行う（ハードコード禁止）。
               example: 9000
-          required: [activeChannelCount, quotaWarningThreshold]
+          required: [globalAffectedChannelCount, estimatedDailyQuota, quotaWarningThreshold]
 
     # --- Pagination ---
     PaginationMeta:
@@ -548,6 +563,13 @@ paths:
                   description: null を送信すると「失効なし」に設定される
                 autoPollingEnabled:
                   type: boolean
+                pollingIntervalMinutes:
+                  type: integer
+                  nullable: true
+                  enum: [5, 10, 30, 60]
+                  description: >
+                    null を送信するとグローバルデフォルトに戻す。
+                    変更時は BullMQ ジョブを旧間隔で削除し新間隔で再登録する。
       responses:
         '200':
           description: 更新されたカテゴリ設定

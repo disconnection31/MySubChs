@@ -13,7 +13,7 @@ Channel ──< Content
 User ──< WatchLater    (Content と User の「後で見る」状態)
 Content ──< WatchLater
 User ──< PushSubscription
-Category ──| NotificationSetting  (1:1。watchLaterDefault, autoExpireHours, notifyOnUpcoming, autoPollingEnabled を含む。カテゴリ作成時にデフォルト値で自動生成する)
+Category ──| NotificationSetting  (1:1。watchLaterDefault, autoExpireHours, notifyOnUpcoming, autoPollingEnabled, pollingIntervalMinutes を含む。カテゴリ作成時にデフォルト値で自動生成する)
 User ──| UserSetting              (1:1。ポーリング間隔・コンテンツ保持期間を管理。ユーザー初回ログイン時にデフォルト値で自動生成する)
 ```
 
@@ -140,7 +140,7 @@ PK：`(userId, contentId)`
 ---
 
 ### NotificationSetting
-カテゴリごとの通知・ポーリング設定。**カテゴリ作成時にデフォルト値（notifyOnNewVideo=true, notifyOnLiveStart=true, notifyOnUpcoming=false, watchLaterDefault=false, autoExpireHours=NULL, autoPollingEnabled=true）で自動生成される。** これにより `NotificationSetting` が存在しないカテゴリは発生しない。
+カテゴリごとの通知・ポーリング設定。**カテゴリ作成時にデフォルト値（notifyOnNewVideo=true, notifyOnLiveStart=true, notifyOnUpcoming=false, watchLaterDefault=false, autoExpireHours=NULL, autoPollingEnabled=true, pollingIntervalMinutes=NULL）で自動生成される。** これにより `NotificationSetting` が存在しないカテゴリは発生しない。
 
 | カラム | 型 | 説明 |
 |---|---|---|
@@ -153,6 +153,7 @@ PK：`(userId, contentId)`
 | watchLaterDefault | Boolean | 新着コンテンツに自動で後で見るフラグを付ける（default: false） |
 | autoExpireHours | Int? | 自動失効時間（時間単位）。NULL = 失効なし。watchLaterDefaultがtrueの場合のみ有効 |
 | autoPollingEnabled | Boolean | 定期ポーリングの有効/無効（default: true）。falseのカテゴリのチャンネルは定期ポーリング対象から除外される。手動ポーリングは設定に関わらず実行可能 |
+| pollingIntervalMinutes | Int? | カテゴリ個別のポーリング間隔（分）。NULL = `UserSetting.pollingIntervalMinutes`（グローバルデフォルト）を使用。有効値: 5/10/30/60 |
 | createdAt | DateTime | 作成日時 |
 | updatedAt | DateTime | 更新日時 |
 
@@ -297,6 +298,7 @@ model NotificationSetting {
   watchLaterDefault    Boolean  @default(false)
   autoExpireHours      Int?
   autoPollingEnabled   Boolean  @default(true)  // falseのカテゴリのチャンネルは定期ポーリング対象外（手動ポーリングは常に可能）
+  pollingIntervalMinutes Int?                   // カテゴリ個別ポーリング間隔（分）。NULL = UserSetting.pollingIntervalMinutes のグローバルデフォルトを使用。選択肢: 5/10/30/60
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -331,6 +333,6 @@ model UserSetting {
 - **`WatchLater.removedVia` による再追加防止**：ユーザーが手動で「後で見る」を削除した場合、レコードを物理削除する代わりに `removedVia = 'MANUAL'` を設定してレコードを保持する。ポーリング時の自動付与ロジックは `removedVia IS NOT NULL` のレコードが存在する場合、そのコンテンツへの `WatchLater` 再追加をスキップする。
 - **`Content.status` の状態遷移**：`type` は不変だが `status` はポーリングのたびに更新される。遷移規則は architecture.md のセクション6を参照。
 - **`UserSetting` の初回生成**：ユーザー初回ログイン時（NextAuthのコールバック）に `pollingIntervalMinutes=30、contentRetentionDays=60` のデフォルト値でレコードを自動生成する。これにより `UserSetting` が存在しないユーザーは発生しない（`NotificationSetting` と同じパターン）。
-- **`pollingIntervalMinutes` の管理**：ポーリング間隔は `UserSetting.pollingIntervalMinutes` で管理する。設定変更時の BullMQ ジョブ更新フローについては [architecture.md §6](./architecture.md) を参照。
+- **`pollingIntervalMinutes` の管理**：グローバルポーリング間隔は `UserSetting.pollingIntervalMinutes` で管理する。カテゴリ個別の間隔は `NotificationSetting.pollingIntervalMinutes`（NULL = グローバルデフォルト使用）で上書きできる。有効間隔 = `NotificationSetting.pollingIntervalMinutes ?? UserSetting.pollingIntervalMinutes`。設定変更時の BullMQ ジョブ更新フローについては [architecture.md §6](./architecture.md) を参照。
 - **`autoPollingEnabled` の判定**：ポーリング対象チャンネルの判定ロジックについては [architecture.md §6](./architecture.md) を参照。
 - **コンテンツ削除時の `WatchLater` の扱い**：`Content` を物理削除すると `WatchLater.onDelete: Cascade` により紐付く `WatchLater` レコードも自動削除される。`removedVia IS NOT NULL`（手動削除済み）レコードも同様に消去される。2ヶ月以上前のコンテンツはポーリングで再取得されないため（最新50件のみ取得）、`removedVia` による再追加防止記録が失われても実害はない。

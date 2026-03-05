@@ -231,27 +231,39 @@ Worker の YouTube API 呼び出しフロー:
 
 ## 6. ポーリング設計
 
-- BullMQ の Repeatable Job で定期実行
+- BullMQ の Repeatable Job で定期実行。**カテゴリごとに独立した Repeatable Job** `auto-poll:{categoryId}` を使用する
 - デフォルト間隔：**30分**（クォータ制約による。詳細は後述のクォータ計算を参照）
 - **ポーリング間隔の変更はジョブ設定の更新によって次のジョブサイクル開始時から反映される（実行中のジョブには影響しない）**
-- ポーリング間隔は `UserSetting.pollingIntervalMinutes` で管理する（[database.md §4](./database.md) 参照）
+- グローバルポーリング間隔は `UserSetting.pollingIntervalMinutes` で管理する。カテゴリ個別の間隔は `NotificationSetting.pollingIntervalMinutes` で上書きできる（[database.md §4](./database.md) 参照）
 
-### ポーリング間隔変更時の BullMQ ジョブ更新フロー
+### 有効間隔の計算
 
-BullMQ の Repeatable Job は間隔を直接変更できないため、旧ジョブを削除して新しい間隔でジョブを再登録する必要がある。
-
-**実行コンポーネント**: Next.js API ルートハンドラ（設定変更 API `PATCH /api/settings`）
-
-設定変更 API がポーリング間隔の変更を検知した場合、DB への保存後に以下のジョブ再登録処理を実行する。
-
-> **注**: PostgreSQL トランザクションと Redis 操作は同一トランザクションにできない。DB 保存成功 → Redis 操作失敗 の場合、DB と Redis で間隔が不整合になる可能性があるが、Worker 起動時の初期登録処理（後述）で自己修復される。
-
-**ジョブ更新手順:**
+各カテゴリの有効ポーリング間隔（effectiveInterval）は以下の式で計算する:
 
 ```
-1. queue.removeRepeatable("polling-job", { every: <旧間隔ms> })
+effectiveInterval = NotificationSetting.pollingIntervalMinutes
+                    ?? UserSetting.pollingIntervalMinutes
+```
+
+### カテゴリ別ジョブのライフサイクル
+
+| イベント | 処理 |
+|---|---|
+| カテゴリ作成 | `autoPollingEnabled=true` の場合のみジョブ登録。間隔 = グローバルデフォルト（`NotificationSetting.pollingIntervalMinutes` は NULL で作成） |
+| カテゴリ削除 | `auto-poll:{categoryId}` を `removeRepeatable()` で削除 |
+| `pollingIntervalMinutes` 変更 | 旧ジョブ削除 → 新間隔でジョブ再登録 |
+| `autoPollingEnabled` → false | `removeRepeatable()` でジョブ削除。`pollingIntervalMinutes` は変更しない（再度 ON にしたとき以前の間隔を復元するため） |
+| `autoPollingEnabled` → true | 有効間隔でジョブ登録 |
+| グローバル設定変更（`PATCH /api/settings`） | `NotificationSetting.pollingIntervalMinutes IS NULL` の全カテゴリのジョブを一括更新 |
+
+> **注**: PostgreSQL トランザクションと Redis 操作は同一トランザクションにできない。DB 保存成功 → Redis 操作失敗 の場合、DB と Redis で間隔が不整合になる可能性があるが、Worker 起動時の自己修復処理（後述）で解消される。
+
+**ジョブ更新手順（間隔変更時）:**
+
+```
+1. queue.removeRepeatable("auto-poll:{categoryId}", { every: <旧間隔ms> })
    ↓
-2. queue.add("polling-job", {}, { repeat: { every: <新間隔ms> } })
+2. queue.add("auto-poll:{categoryId}", { categoryId }, { repeat: { every: <新間隔ms> } })
 ```
 
 **実行中ジョブへの影響:**
@@ -260,18 +272,25 @@ BullMQ の Repeatable Job は間隔を直接変更できないため、旧ジョ
 - 新しい間隔は次のジョブサイクル開始時から適用される
 - `removeRepeatable()` は次回スケジュールのエントリのみ削除し、実行中のジョブには影響しない
 
-**Worker 起動時の初期登録:**
+### ジョブ実行スコープ
 
-BullMQ の Repeatable Job は **ジョブ名 + `every` の値** を組み合わせた Redis キーで一意性が管理される。そのため、異なる `every` 値でジョブを追加しても旧エントリは自動削除されない。Worker 起動時は必ず以下の手順で登録する:
+各 `auto-poll:{categoryId}` ジョブには `categoryId` を payload として渡す。ジョブ実行時は指定カテゴリのチャンネルのみをポーリング対象とする（全カテゴリ横断ではなくカテゴリ単位）。
+
+### Worker 起動時の自己修復
+
+BullMQ の Repeatable Job は **ジョブ名 + `every` の値** を組み合わせた Redis キーで一意性が管理される。そのため、異なる `every` 値でジョブを追加しても旧エントリは自動削除されない。Worker 起動時は必ず以下の手順で整合性を確認・修復する:
 
 ```
-1. queue.getRepeatableJobs() で既存の Repeatable Job 一覧を取得
+1. DB の全カテゴリの (categoryId, effectiveInterval, autoPollingEnabled) を取得
    ↓
-2. DB の pollingIntervalMinutes を読み取り、正しい間隔（ms）を確認
+2. queue.getRepeatableJobs() で既存の Repeatable Job 一覧を取得
    ↓
-3. 間隔が一致しないエントリがあれば removeRepeatable() で削除
+3. 不整合を検出して修復:
+   - 余分なジョブ（DB に存在しないカテゴリ、または autoPollingEnabled=false なのにジョブが存在する）→ removeRepeatable() で削除
+   - 欠損ジョブ（autoPollingEnabled=true なのにジョブが存在しない）→ 登録
+   - 間隔ズレ（ジョブの every が effectiveInterval と一致しない）→ 旧ジョブ削除 → 新間隔で再登録
    ↓
-4. 正しい間隔で queue.add() を実行（既に同一間隔のエントリが存在する場合はスキップ可）
+4. 修復完了後に通常のジョブ処理を開始する
 ```
 
 この手順により、API ハンドラでの Redis 操作が失敗した場合も Worker 再起動時に自己修復される。
@@ -555,8 +574,8 @@ POST 後の検知フローおよびページロード時の状態復元の詳細
 
 BullMQ Repeatable Job はデフォルトで前のジョブが完了前に次のジョブを開始する可能性がある。以下の設計で重複実行を防止する。
 
-- **固定 `jobId`**：Repeatable Job に `jobId: "polling-job"` を設定（同名ジョブの多重スケジュール防止）
-- **Redis ロック**：ジョブ開始時に `SET polling:lock NX PX <interval_ms>` でロック取得。取得失敗（前のジョブが実行中）の場合はそのジョブを即時スキップ（正常完了として終了）
+- **固定 `jobId`**：Repeatable Job に `jobId: "auto-poll:{categoryId}"` を設定（同名ジョブの多重スケジュール防止）
+- **Redis ロック**：ジョブ開始時に `SET polling:lock:{categoryId} NX PX <interval_ms>` でロック取得。取得失敗（前のジョブが実行中）の場合はそのジョブを即時スキップ（正常完了として終了）
 
 ---
 

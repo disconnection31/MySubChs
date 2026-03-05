@@ -68,13 +68,15 @@
 +------------------------------------------------------------------+
 | ポーリング設定                                                      |
 | ─────────────────────────────────────────────────────────────── |
-| ポーリング間隔                           [30分 ▼]                  |
-| 定期的にYouTube APIを確認し、新着コンテンツを取得する間隔。            |
+| デフォルトポーリング間隔                     [30分 ▼]              |
+| カテゴリごとに上書きしない場合に使用されるデフォルト間隔。             |
 | 変更は次のポーリングサイクル開始時から反映されます。                    |
 |                                                                  |
+| 推定1日クォータ使用量: 4,900 / 10,000 units                        |
+|                                                                  |
 | ⚠️ クォータ警告（条件を満たす場合のみ表示）                           |
-|   現在のチャンネル数（XX件）では1日のAPIクォータを超過する可能性が    |
-|   あります。30分以上の間隔を推奨します。                             |
+|   全カテゴリの合計クォータが警告しきい値を超えています。              |
+|   一部のカテゴリのポーリング間隔を長くすることを推奨します。           |
 +------------------------------------------------------------------+
 ```
 
@@ -82,7 +84,7 @@
 
 | 設定項目 | 説明 | 初期値 |
 |---|---|---|
-| ポーリング間隔 | YouTube API の定期確認間隔 | 30分 |
+| デフォルトポーリング間隔 | カテゴリごとに個別設定がない場合に使用するデフォルト間隔 | 30分 |
 
 ### セレクトボックスの選択肢
 
@@ -102,17 +104,30 @@
 
 ### クォータ警告の表示条件
 
-設定画面の初回ロード時に `GET /api/settings` のレスポンスに含まれる `activeChannelCount`（アクティブチャンネル数）と `quotaWarningThreshold`（クォータ警告しきい値）を使って、以下の条件で警告を表示する。
+設定画面の初回ロード時に `GET /api/settings` のレスポンスに含まれる以下の値を使って警告を判定する：
 
-| 選択した間隔 | 警告を表示する条件 |
+| フィールド | 説明 |
 |---|---|
-| 5分 | `activeChannelCount × 288 > quotaWarningThreshold`（quotaWarningThreshold=9,000 のとき チャンネル数 ≥ 32） |
-| 10分 | `activeChannelCount × 144 > quotaWarningThreshold`（quotaWarningThreshold=9,000 のとき チャンネル数 ≥ 63） |
-| 30分・1時間 | 警告なし |
+| `estimatedDailyQuota` | 全カテゴリ合算の推定1日クォータ消費量（ユニット） |
+| `globalAffectedChannelCount` | グローバルデフォルトを使用中のカテゴリのチャンネル数合計 |
+| `quotaWarningThreshold` | クォータ警告しきい値（ユニット） |
 
-- 警告メッセージ例：「現在のチャンネル数（XX件）では、1日のAPIクォータを超過する可能性があります。30分以上の間隔を推奨します。」
-- 間隔変更時に即座に警告の表示/非表示を再評価する（再APIコールは不要。`activeChannelCount` と `quotaWarningThreshold` は初回ロード時の値を使用）
-- フロントエンドはしきい値（`quotaWarningThreshold`）をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
+**警告表示条件:** `estimatedDailyQuota > quotaWarningThreshold`
+
+- 警告メッセージ例：「全カテゴリの合計クォータが警告しきい値を超えています。一部のカテゴリのポーリング間隔を長くすることを推奨します。」
+- 推定クォータ使用量は `estimatedDailyQuota` の値を表示する（例：「推定1日クォータ使用量: 4,900 / 10,000 units」）
+
+**グローバル設定変更時のリアルタイム再計算（APIコールなし）:**
+
+グローバルデフォルト間隔を変更した場合、`globalAffectedChannelCount` を使って `estimatedDailyQuota` を以下の式でローカル再計算し、警告表示を即座に更新する：
+
+```
+newEstimatedDailyQuota = estimatedDailyQuota
+                         - globalAffectedChannelCount × (1440 / oldInterval)
+                         + globalAffectedChannelCount × (1440 / newInterval)
+```
+
+- フロントエンドは `quotaWarningThreshold`・`globalAffectedChannelCount`・`estimatedDailyQuota` をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
 
 ---
 
@@ -335,7 +350,7 @@
 | 通知サブスクリプション登録 | `POST /api/notifications/subscriptions` |
 | テスト通知送信 | `POST /api/notifications/test` |
 
-- 設定値・`activeChannelCount`・`quotaWarningThreshold` はすべて `GET /api/settings` の1回のリクエストで取得する
+- 設定値・`globalAffectedChannelCount`・`estimatedDailyQuota`・`quotaWarningThreshold` はすべて `GET /api/settings` の1回のリクエストで取得する
 - TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
 - 設定変更は楽観的更新を適用し、失敗時にロールバックする
 
@@ -345,7 +360,7 @@
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/api/settings` | ユーザー設定取得（`activeChannelCount`・`quotaWarningThreshold` を含む） |
+| GET | `/api/settings` | ユーザー設定取得（`globalAffectedChannelCount`・`estimatedDailyQuota`・`quotaWarningThreshold` を含む） |
 | PATCH | `/api/settings` | ユーザー設定更新（ポーリング間隔・コンテンツ保持期間） |
 | POST | `/api/settings/sync-channels` | チャンネル手動再同期 |
 | POST | `/api/notifications/subscriptions` | Web Push サブスクリプション登録 |
