@@ -121,7 +121,7 @@
 
 - クリック後、`POST /api/categories/{categoryId}/poll` を呼び出す
 - ポーリングはバックグラウンドで非同期実行される（APIはジョブのキューへの追加成功のみ応答する）
-- APIから `429 Too Many Requests` が返った場合（クールダウン中）：ボタンをクールダウン状態にし、`retryAfter` 秒のカウントダウンを表示する
+- APIから `429 Too Many Requests` が返った場合（クールダウン中）：ボタンをクールダウン状態にし、レスポンスの `error.retryAfter` 秒のカウントダウンを表示する
 
 **POST 後のジョブ完了検知:**
 
