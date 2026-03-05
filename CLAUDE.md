@@ -56,6 +56,10 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 2. Confirm the cost fits within the daily budget given the polling interval.
 3. Document the cost in code comments near the API call site.
 
+## Documentation Writing Conventions
+
+- **Step and section numbering**: Always start from 1. When inserting a new step or section in the middle, shift subsequent numbers rather than using 0.
+
 ## Documentation
 
 All specs are in Japanese. Key documents:

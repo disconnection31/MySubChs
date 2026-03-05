@@ -263,7 +263,7 @@ components:
         - $ref: '#/components/schemas/UserSetting'
         - type: object
           description: >
-            ユーザー設定に加え、クォータ警告表示に必要な統計情報を含む拡張スキーマ。
+            ユーザー設定に加え、クォータ警告表示に必要な統計情報とトークン状態を含む拡張スキーマ。
             GET /settings でのみ返される。PATCH /settings では返さない。
           properties:
             estimatedDailyQuota:
@@ -286,7 +286,16 @@ components:
                 YouTube Data API v3 の1日あたりのクォータ上限（ユニット）。バックエンドで定義した名前付き定数（YOUTUBE_QUOTA_DAILY_LIMIT）を返す。
                 フロントエンドはこの値をクォータ使用量の表示分母として使用する（ハードコード禁止）。
               example: 10000
-          required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit]
+            tokenStatus:
+              type: string
+              enum: [valid, error]
+              description: >
+                OAuth トークンの状態。
+                valid = トークンは正常（Account.token_error IS NULL）。
+                error = トークン失効またはリフレッシュ失敗（Account.token_error IS NOT NULL）。
+                error の場合、設定画面に再認証バナーを表示する。
+              example: valid
+          required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit, tokenStatus]
 
     # --- Pagination ---
     PaginationMeta:
