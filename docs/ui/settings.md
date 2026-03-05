@@ -102,16 +102,17 @@
 
 ### クォータ警告の表示条件
 
-設定画面の初回ロード時に `GET /api/channels?isActive=true` でアクティブチャンネル数（`activeChannelCount`）を取得し、以下の条件で警告を表示する。
+設定画面の初回ロード時に `GET /api/settings` のレスポンスに含まれる `activeChannelCount`（アクティブチャンネル数）と `quotaWarningThreshold`（クォータ警告しきい値）を使って、以下の条件で警告を表示する。
 
 | 選択した間隔 | 警告を表示する条件 |
 |---|---|
-| 5分 | `activeChannelCount × 288 > 9,000`（= チャンネル数 ≥ 32） |
-| 10分 | `activeChannelCount × 144 > 9,000`（= チャンネル数 ≥ 63） |
+| 5分 | `activeChannelCount × 288 > quotaWarningThreshold`（quotaWarningThreshold=9,000 のとき チャンネル数 ≥ 32） |
+| 10分 | `activeChannelCount × 144 > quotaWarningThreshold`（quotaWarningThreshold=9,000 のとき チャンネル数 ≥ 63） |
 | 30分・1時間 | 警告なし |
 
-- 警告メッセージ例：「現在のチャンネル数（XX件）では、1日のAPIクォータ（10,000ユニット）を超過する可能性があります。30分以上の間隔を推奨します。」
-- 間隔変更時に即座に警告の表示/非表示を再評価する（再APIコールは不要。チャンネル数は初回ロード時の値を使用）
+- 警告メッセージ例：「現在のチャンネル数（XX件）では、1日のAPIクォータを超過する可能性があります。30分以上の間隔を推奨します。」
+- 間隔変更時に即座に警告の表示/非表示を再評価する（再APIコールは不要。`activeChannelCount` と `quotaWarningThreshold` は初回ロード時の値を使用）
+- フロントエンドはしきい値（`quotaWarningThreshold`）をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
 
 ---
 
@@ -327,15 +328,15 @@
 
 | 操作 | APIコール |
 |---|---|
-| 初回表示（設定取得） | `GET /api/settings` |
-| 初回表示（クォータ警告用チャンネル数取得） | `GET /api/channels?isActive=true` |
+| 初回表示（設定取得・クォータ警告用データ含む） | `GET /api/settings` |
 | ポーリング間隔変更 | `PATCH /api/settings` `{ pollingIntervalMinutes: <値> }` |
 | コンテンツ保持期間変更 | `PATCH /api/settings` `{ contentRetentionDays: <値> }` |
 | チャンネル再同期 | `POST /api/settings/sync-channels` |
 | 通知サブスクリプション登録 | `POST /api/notifications/subscriptions` |
 | テスト通知送信 | `POST /api/notifications/test` |
 
-- 設定値と チャンネル数は TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
+- 設定値・`activeChannelCount`・`quotaWarningThreshold` はすべて `GET /api/settings` の1回のリクエストで取得する
+- TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
 - 設定変更は楽観的更新を適用し、失敗時にロールバックする
 
 ---
@@ -344,9 +345,8 @@
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/api/settings` | ユーザー設定取得 |
+| GET | `/api/settings` | ユーザー設定取得（`activeChannelCount`・`quotaWarningThreshold` を含む） |
 | PATCH | `/api/settings` | ユーザー設定更新（ポーリング間隔・コンテンツ保持期間） |
-| GET | `/api/channels` | アクティブチャンネル数取得（クォータ警告の判定用） |
 | POST | `/api/settings/sync-channels` | チャンネル手動再同期 |
 | POST | `/api/notifications/subscriptions` | Web Push サブスクリプション登録 |
 | POST | `/api/notifications/test` | テスト通知送信 |
