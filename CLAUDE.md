@@ -56,11 +56,13 @@ All specs are in Japanese. Key documents:
 - `docs/requirements.md` - Functional/non-functional requirements
 - `docs/architecture.md` - Technical design, polling flow, state machines, quota calculations
 - `docs/database.md` - DB schema, Prisma models, design considerations
+- `docs/infrastructure.md` - Docker Compose, environment variables, AWS migration
 - `docs/openapi.yaml` - REST API specification (OpenAPI 3.1)
 - `docs/ui/dashboard.md` - UI spec: main dashboard screen
 - `docs/ui/channels.md` - UI spec: channel management screen
 - `docs/ui/categories.md` - UI spec: category management screen
 - `docs/ui/settings.md` - UI spec: settings screen
+- `docs/ui/pwa.md` - UI spec: Service Worker / PWA design
 - `ref/youtube-api.md` - YouTube Data API v3 quota/endpoint reference
 
 ## Directory Structure (planned)
