@@ -213,6 +213,32 @@ Worker の YouTube API 呼び出しフロー:
 - デフォルト間隔：**30分**（クォータ制約による。詳細は後述のクォータ計算を参照）
 - **ポーリング間隔の変更はジョブ設定の更新によって次のジョブサイクル開始時から反映される（実行中のジョブには影響しない）**
 
+### ポーリング間隔変更時の BullMQ ジョブ更新フロー
+
+BullMQ の Repeatable Job は間隔を直接変更できないため、旧ジョブを削除して新しい間隔でジョブを再登録する必要がある。
+
+**実行コンポーネント**: Next.js API ルートハンドラ（設定変更 API `PATCH /api/settings`）
+
+設定変更 API がポーリング間隔の変更を検知した場合、DB への保存と同一トランザクション内（またはその直後）に以下のジョブ再登録処理を実行する。
+
+**ジョブ更新手順:**
+
+```
+1. queue.removeRepeatable("polling-job", { every: <旧間隔ms> })
+   ↓
+2. queue.add("polling-job", {}, { repeat: { every: <新間隔ms> }, jobId: "polling-job" })
+```
+
+**実行中ジョブへの影響:**
+
+- 変更時点で実行中のジョブは最後まで完了させる（強制中断しない）
+- 新しい間隔は次のジョブサイクル開始時から適用される
+- `removeRepeatable()` は次回スケジュールのエントリのみ削除し、実行中のジョブには影響しない
+
+**Worker 起動時の初期登録との関係:**
+
+Worker は起動時にも Repeatable Job を登録する。DB の `UserSetting.pollingIntervalMinutes` を読み取り、常に最新の間隔で登録する（既存の Repeatable Job が残っている場合は同一 `jobId` により上書きされる）。
+
 ### ジョブの流れ
 
 ```mermaid
