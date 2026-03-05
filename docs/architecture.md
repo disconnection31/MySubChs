@@ -555,11 +555,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: mysubchs
-      POSTGRES_PASSWORD: mysubchs
-      POSTGRES_DB: mysubchs
+      POSTGRES_USER: ${POSTGRES_USER:-mysubchs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mysubchs}
+      POSTGRES_DB: ${POSTGRES_DB:-mysubchs}
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U mysubchs']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-mysubchs}']
       interval: 5s
       timeout: 5s
       retries: 5
