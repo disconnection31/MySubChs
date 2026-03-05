@@ -109,25 +109,19 @@
 | フィールド | 説明 |
 |---|---|
 | `estimatedDailyQuota` | 全カテゴリ合算の推定1日クォータ消費量（ユニット） |
-| `globalAffectedChannelCount` | グローバルデフォルトを使用中のカテゴリのチャンネル数合計 |
 | `quotaWarningThreshold` | クォータ警告しきい値（ユニット） |
+| `quotaDailyLimit` | YouTube API の1日あたりのクォータ上限（ユニット）。使用量表示の分母として使用する |
 
 **警告表示条件:** `estimatedDailyQuota > quotaWarningThreshold`
 
 - 警告メッセージ例：「全カテゴリの合計クォータが警告しきい値を超えています。一部のカテゴリのポーリング間隔を長くすることを推奨します。」
-- 推定クォータ使用量は `estimatedDailyQuota` の値を表示する（例：「推定1日クォータ使用量: 4,900 / 10,000 units」）
+- 推定クォータ使用量は `estimatedDailyQuota / quotaDailyLimit` の形式で表示する（例：「推定1日クォータ使用量: 4,900 / 10,000 units」）
 
-**グローバル設定変更時のリアルタイム再計算（APIコールなし）:**
+**デフォルトポーリング間隔変更後のクォータ表示更新:**
 
-グローバルデフォルト間隔を変更した場合、`globalAffectedChannelCount` を使って `estimatedDailyQuota` を以下の式でローカル再計算し、警告表示を即座に更新する：
+デフォルトポーリング間隔を変更した場合、PATCH 成功後に `GET /api/settings` を再フェッチし、サーバーが再計算した `estimatedDailyQuota` で警告表示を更新する。フロントエンドはクォータの再計算を行わない。
 
-```
-newEstimatedDailyQuota = estimatedDailyQuota
-                         - globalAffectedChannelCount × (1440 / oldInterval)
-                         + globalAffectedChannelCount × (1440 / newInterval)
-```
-
-- フロントエンドは `quotaWarningThreshold`・`globalAffectedChannelCount`・`estimatedDailyQuota` をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
+- フロントエンドは `quotaWarningThreshold`・`quotaDailyLimit`・`estimatedDailyQuota` をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
 
 ---
 
@@ -350,9 +344,10 @@ newEstimatedDailyQuota = estimatedDailyQuota
 | 通知サブスクリプション登録 | `POST /api/notifications/subscriptions` |
 | テスト通知送信 | `POST /api/notifications/test` |
 
-- 設定値・`globalAffectedChannelCount`・`estimatedDailyQuota`・`quotaWarningThreshold` はすべて `GET /api/settings` の1回のリクエストで取得する
+- 設定値・`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit` はすべて `GET /api/settings` の1回のリクエストで取得する
 - TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
-- 設定変更は楽観的更新を適用し、失敗時にロールバックする
+- ポーリング間隔変更は PATCH 成功後に `GET /api/settings` を再フェッチしてクォータ表示を更新する
+- コンテンツ保持期間変更は楽観的更新を適用し、失敗時にロールバックする
 
 ---
 
@@ -360,7 +355,7 @@ newEstimatedDailyQuota = estimatedDailyQuota
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/api/settings` | ユーザー設定取得（`globalAffectedChannelCount`・`estimatedDailyQuota`・`quotaWarningThreshold` を含む） |
+| GET | `/api/settings` | ユーザー設定取得（`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit` を含む） |
 | PATCH | `/api/settings` | ユーザー設定更新（ポーリング間隔・コンテンツ保持期間） |
 | POST | `/api/settings/sync-channels` | チャンネル手動再同期 |
 | POST | `/api/notifications/subscriptions` | Web Push サブスクリプション登録 |
