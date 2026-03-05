@@ -253,7 +253,7 @@ model Content {
   platformContentId String
   title             String
   type              ContentType
-  status            ContentStatus @default(ARCHIVED)  // 動画はARCHIVED、ライブ予定はUPCOMINGで登録（デフォルトはフォールバック用）
+  status            ContentStatus                     // 動画はARCHIVED、ライブ予定はUPCOMING、配信中はLIVEで登録（常に明示指定。architecture.md §6 参照）
   publishedAt       DateTime?
   scheduledStartAt  DateTime?
   actualStartAt     DateTime?
