@@ -333,6 +333,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+    Conflict:
+      description: リソースの競合（例：同一ユーザー内でカテゴリ名が重複）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: CATEGORY_NAME_DUPLICATE
+              message: 同じ名前のカテゴリがすでに存在します
     TooManyRequests:
       description: クールダウン中のため受け付けられない（手動ポーリングのみ）
       content:
@@ -435,6 +445,8 @@ paths:
                 $ref: '#/components/schemas/Category'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
   /categories/reorder:
     patch:
@@ -501,6 +513,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
 
     delete:
       operationId: deleteCategory
