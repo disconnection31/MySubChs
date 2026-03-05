@@ -239,7 +239,7 @@ components:
           description: >
             定期ポーリング間隔（分）。
             5分・10分はクォータ超過リスクがあるため UI で警告を表示する
-            （チャンネル数 × 1日のポーリング回数 > 9,000 ユニットで警告）。
+            （activeChannelCount × 1日のポーリング回数 > quotaWarningThreshold で警告）。
         contentRetentionDays:
           type: integer
           enum: [30, 60, 90, 180, 365]
@@ -248,6 +248,30 @@ components:
             コンテンツ保持期間（日）。デフォルト 60日（2ヶ月）。
             期間を超えた Content は ContentCleanup ジョブが毎日物理削除する。
       required: [pollingIntervalMinutes, contentRetentionDays]
+
+    # --- UserSettingWithStats ---
+    UserSettingWithStats:
+      allOf:
+        - $ref: '#/components/schemas/UserSetting'
+        - type: object
+          description: >
+            ユーザー設定に加え、設定画面の初回ロード時にのみ必要な統計情報を含む拡張スキーマ。
+            GET /settings でのみ返される。PATCH /settings では返さない。
+          properties:
+            activeChannelCount:
+              type: integer
+              description: >
+                アクティブなチャンネル数（isActive=true のチャンネル数）。
+                バックエンドで COUNT クエリを実行して返す。
+                クォータ警告の判定（activeChannelCount × 1日ポーリング回数 > quotaWarningThreshold）に使用する。
+              example: 42
+            quotaWarningThreshold:
+              type: integer
+              description: >
+                クォータ警告しきい値（ユニット）。バックエンドで定義した名前付き定数（YOUTUBE_QUOTA_WARNING_THRESHOLD）を返す。
+                フロントエンドはこの値を使って警告判定を行う（ハードコード禁止）。
+              example: 9000
+          required: [activeChannelCount, quotaWarningThreshold]
 
     # --- Pagination ---
     PaginationMeta:
@@ -898,11 +922,11 @@ paths:
       tags: [settings]
       responses:
         '200':
-          description: ユーザー設定
+          description: ユーザー設定（activeChannelCount・quotaWarningThreshold を含む）
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserSetting'
+                $ref: '#/components/schemas/UserSettingWithStats'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
