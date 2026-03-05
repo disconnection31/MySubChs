@@ -116,7 +116,7 @@
    （既存の Google OAuth フローをそのまま再利用する）
 2. Google の認証画面にリダイレクトされる
 3. 認証成功後、NextAuth の signIn コールバックが実行される
-   → Account.tokenError が NULL にリセットされる
+   → Account.token_error が NULL にリセットされる
 4. 設定画面に戻ると tokenStatus が "valid" になり、バナーが消える
 ```
 

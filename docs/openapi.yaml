@@ -291,8 +291,8 @@ components:
               enum: [valid, error]
               description: >
                 OAuth トークンの状態。
-                valid = トークンは正常（Account.tokenError IS NULL）。
-                error = トークン失効またはリフレッシュ失敗（Account.tokenError IS NOT NULL）。
+                valid = トークンは正常（Account.token_error IS NULL）。
+                error = トークン失効またはリフレッシュ失敗（Account.token_error IS NOT NULL）。
                 error の場合、設定画面に再認証バナーを表示する。
               example: valid
           required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit, tokenStatus]
