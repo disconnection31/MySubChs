@@ -344,9 +344,10 @@
 | 通知サブスクリプション登録 | `POST /api/notifications/subscriptions` |
 | テスト通知送信 | `POST /api/notifications/test` |
 
-- 設定値・`estimatedDailyQuota`・`quotaWarningThreshold` はすべて `GET /api/settings` の1回のリクエストで取得する
+- 設定値・`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit` はすべて `GET /api/settings` の1回のリクエストで取得する
 - TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
-- 設定変更は楽観的更新を適用し、失敗時にロールバックする
+- ポーリング間隔変更は PATCH 成功後に `GET /api/settings` を再フェッチしてクォータ表示を更新する
+- コンテンツ保持期間変更は楽観的更新を適用し、失敗時にロールバックする
 
 ---
 
@@ -354,7 +355,7 @@
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/api/settings` | ユーザー設定取得（`estimatedDailyQuota`・`quotaWarningThreshold` を含む） |
+| GET | `/api/settings` | ユーザー設定取得（`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit` を含む） |
 | PATCH | `/api/settings` | ユーザー設定更新（ポーリング間隔・コンテンツ保持期間） |
 | POST | `/api/settings/sync-channels` | チャンネル手動再同期 |
 | POST | `/api/notifications/subscriptions` | Web Push サブスクリプション登録 |
