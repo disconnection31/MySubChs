@@ -540,7 +540,7 @@ uploadsPlaylistId キャッシュ後: channels.list コスト = 0
 ```
 
 - **デフォルトポーリング間隔は30分**（上記クォータ制約による）
-- クォータ枯渇時: YouTube API が `quotaExceeded (403)` を返す → ジョブを即時終了し次のスケジュール時刻まで待機（リトライなし）
+- クォータ枯渇時: YouTube API が `quotaExceeded (403)` を返す → `quota:exhausted` フラグを Redis にセットしてジョブを正常完了として終了。以降のジョブはフラグを確認してスキップする（後述「クォータ枯渇時の自動停止」参照）
 
 **`estimatedDailyQuota` の計算式（`GET /api/settings` レスポンスで返す値）:**
 
@@ -607,6 +607,59 @@ GET /api/categories/{categoryId}/poll/status
 **クライアント側のポーリング完了検知フロー:**
 
 POST 後の検知フローおよびページロード時の状態復元の詳細は [ui/dashboard.md §5.2](./ui/dashboard.md) を参照。
+
+### クォータ枯渇時の自動停止
+
+YouTube API が `quotaExceeded (403)` を返した場合、その日の残りは API 呼び出しがすべて失敗する。BullMQ の Repeatable Job はスケジュール通り再起動し続けるため、無駄な API 呼び出しとエラーログを防ぐために Redis フラグで自動停止する。
+
+#### Redis フラグの仕様
+
+| 項目 | 内容 |
+|---|---|
+| キー名 | `quota:exhausted`（シングルユーザー構成のためユーザー ID を含まない） |
+| 値 | フラグが有効な期限（翌日 UTC 00:00）の ISO8601 文字列（例: `"2024-01-16T00:00:00.000Z"`） |
+| TTL | `quotaExceeded (403)` を受けた時点から**翌日 UTC 00:00 までの残り秒数**を動的に計算してセット |
+
+TTL 計算式:
+
+```
+secondsUntilMidnightUTC = 86400 - (currentUtcSeconds % 86400)
+```
+
+TTL が切れると Redis キーは自動失効し、翌日 UTC 00:00（日本時間 09:00 頃）以降は通常ポーリングが自動再開する。BullMQ の Repeatable Job は変更不要（キーが消えると自動的に通常動作に戻るため）。
+
+#### ポーリングジョブへの枯渇チェック追加
+
+**自動ポーリングジョブ（`auto-poll:{categoryId}`）の冒頭に以下のチェックを追加する:**
+
+```
+ポーリングジョブ開始時フロー（既存の Step 1 の前に挿入）:
+1. Redis の quota:exhausted キーを確認
+   → 存在する場合: ジョブをスキップ（正常完了として終了）し、ログに "Quota exhausted, skipping poll" を記録
+   → 存在しない場合: 通常通り次の Step（DBから対象チャンネルを取得）に進む
+```
+
+**Step 3（`playlistItems.list`）または Step 5（`videos.list`）で `quotaExceeded (403)` を受信した場合:**
+
+```
+1. quota:exhausted キーを TTL = 翌日 UTC 00:00 までの残り秒数でセット（値は翌日 UTC 00:00 の ISO8601 文字列）
+2. 残処理をスキップしてジョブを正常完了として終了（BullMQ の failed にしない）
+3. ログに "YouTube API quota exhausted. Polling suspended until UTC midnight." を記録
+```
+
+#### 手動ポーリング API への枯渇チェック追加
+
+`POST /api/categories/{categoryId}/poll` においても、`quota:exhausted` フラグが立っている場合は即座に `QUOTA_EXHAUSTED` エラーを返す（API 呼び出しを行わない）。
+
+```
+手動ポーリング API の枯渇チェック（冒頭に追加）:
+1. Redis の quota:exhausted キーを確認
+   → 存在する場合: HTTP 503 を返す
+     { error: { code: "QUOTA_EXHAUSTED", message: "YouTube API クォータが本日分を超過しました。翌日 UTC 00:00 に自動解除されます。" } }
+   → 存在しない場合: 通常通りキューへのエンキュー処理を続行する
+```
+
+> **注**: `quota:exhausted` キーの TTL は翌日 UTC 00:00 まで。TTL 失効後は `GET /api/settings` の `quotaExhaustedUntil` が `null` に戻り、UI のバナーも自動的に消える。
 
 ### ポーリングジョブの重複実行防止
 

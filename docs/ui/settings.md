@@ -27,6 +27,7 @@
 |   [再認証する]                                                     |
 |                                                                  |
 | ▼ ポーリング設定                                                   |
+|   （枯渇中のみ）⛔ クォータ超過バナー                                |
 |   ポーリング間隔          [30分 ▼]                                 |
 |                                                                  |
 | ▼ コンテンツ設定                                                   |
@@ -185,6 +186,27 @@
 デフォルトポーリング間隔を変更した場合、PATCH 成功後に `GET /api/settings` を再フェッチし、サーバーが再計算した `estimatedDailyQuota` で警告表示を更新する。フロントエンドはクォータの再計算を行わない。
 
 - フロントエンドは `quotaWarningThreshold`・`quotaDailyLimit`・`estimatedDailyQuota` をハードコードせず、必ず `GET /api/settings` のレスポンス値を参照すること
+
+### クォータ枯渇時の警告バナー
+
+**表示条件:** `GET /api/settings` レスポンスの `quotaExhaustedUntil` が `null` でない場合
+
+```
++------------------------------------------------------------------+
+| ⛔ YouTube API クォータが本日分を超過しました。                       |
+|    ポーリングは翌日 UTC 00:00 に自動再開します。（日本時間 09:00 頃） |
++------------------------------------------------------------------+
+```
+
+- スタイル: shadcn `Alert` の `destructive` バリアント（赤またはオレンジ）
+- ポーリング設定セクションの**先頭**（ポーリング間隔セレクトボックスより上）に表示する
+- 枯渇中はポーリング間隔の変更操作は引き続き可能（設定値の保存は行われる。次回 TTL 失効後から反映）
+- `quotaExhaustedUntil` が `null` に戻る（翌日 UTC 00:00 以降）と、バナーは自動的に消える（`GET /api/settings` の再フェッチによって検知）
+
+**手動ポーリングが枯渇中に実行された場合（`POST /api/categories/{categoryId}/poll` が 503 を返した場合）:**
+
+- トースト通知で「YouTube API クォータが本日分を超過しています。翌日 UTC 00:00 に自動解除されます。」を表示する
+- `GET /api/settings` を再フェッチして設定画面のバナーを最新状態に更新する（ダッシュボードからの操作の場合は設定画面には影響しない）
 
 ---
 
@@ -413,7 +435,7 @@
 | テスト通知送信 | `POST /api/notifications/test` |
 | 再認証 | NextAuth の `signIn("google")` を呼び出す（API Route ではなく NextAuth フロー） |
 
-- 設定値・`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit`・`tokenStatus` はすべて `GET /api/settings` の1回のリクエストで取得する
+- 設定値・`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit`・`tokenStatus`・`quotaExhaustedUntil` はすべて `GET /api/settings` の1回のリクエストで取得する
 - TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
 - ポーリング間隔変更は PATCH 成功後に `GET /api/settings` を再フェッチしてクォータ表示を更新する
 - コンテンツ保持期間変更は楽観的更新を適用し、失敗時にロールバックする
@@ -425,7 +447,7 @@
 
 | メソッド | パス | 用途 |
 |---|---|---|
-| GET | `/api/settings` | ユーザー設定取得（`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit`・`tokenStatus` を含む） |
+| GET | `/api/settings` | ユーザー設定取得（`estimatedDailyQuota`・`quotaWarningThreshold`・`quotaDailyLimit`・`tokenStatus`・`quotaExhaustedUntil` を含む） |
 | PATCH | `/api/settings` | ユーザー設定更新（ポーリング間隔・コンテンツ保持期間） |
 | POST | `/api/settings/sync-channels` | チャンネル手動再同期 |
 | POST | `/api/notifications/subscriptions` | Web Push サブスクリプション登録 |
