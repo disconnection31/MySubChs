@@ -295,7 +295,18 @@ components:
                 error = トークン失効またはリフレッシュ失敗（Account.token_error IS NOT NULL）。
                 error の場合、設定画面に再認証バナーを表示する。
               example: valid
-          required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit, tokenStatus]
+            quotaExhaustedUntil:
+              type: string
+              format: date-time
+              nullable: true
+              description: >
+                クォータ枯渇フラグの有効期限（翌日 UTC 00:00）。
+                null = クォータ枯渇なし（正常）。
+                非 null = クォータ枯渇中（この日時まで自動ポーリングがスキップされる）。
+                Redis の quota:exhausted キーの TTL が切れると null に戻る。
+                設定画面のクォータ枯渇警告バナーの表示判定に使用する。
+              example: "2024-01-16T00:00:00.000Z"
+          required: [estimatedDailyQuota, quotaWarningThreshold, quotaDailyLimit, tokenStatus, quotaExhaustedUntil]
 
     # --- Pagination ---
     PaginationMeta:
@@ -380,6 +391,16 @@ components:
                     example: 180
                 required: [code, message, retryAfter]
             required: [error]
+    QuotaExhausted:
+      description: YouTube API クォータが本日分を超過しているため受け付けられない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: QUOTA_EXHAUSTED
+              message: "YouTube API クォータが本日分を超過しました。翌日 UTC 00:00 に自動解除されます。"
 
   # ----- Reusable Parameters -----
   parameters:
@@ -633,6 +654,7 @@ paths:
         - 同一カテゴリへのリクエストは **5分間のクールダウン** を設ける（Redis TTL で管理）
         - ジョブは非同期で実行され、このエンドポイントは完了を待たずにすぐ応答する
         - クライアントは `GET /categories/{categoryId}/poll/status` でジョブ完了を検知する
+        - Redis の `quota:exhausted` キーが存在する場合は即座に 503 を返す（エンキューしない）
       tags: [categories]
       responses:
         '200':
@@ -652,6 +674,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/QuotaExhausted'
 
   /categories/{categoryId}/poll/status:
     parameters:
