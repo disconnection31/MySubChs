@@ -330,6 +330,12 @@ components:
 
   # ----- Reusable Responses -----
   responses:
+    BadRequest:
+      description: リクエストボディが不正な場合
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthorized:
       description: 認証されていない（セッション Cookie が無効または期限切れ）
       content:
@@ -452,6 +458,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '409':
@@ -488,6 +496,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -518,6 +528,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -600,6 +612,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NotificationSetting'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -759,6 +773,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Channel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -918,6 +934,8 @@ paths:
       responses:
         '201':
           description: サブスクリプション登録成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -1000,6 +1018,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserSetting'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
