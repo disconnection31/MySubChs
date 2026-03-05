@@ -222,10 +222,31 @@ Worker の YouTube API 呼び出しフロー:
 2. expires_at < now() の場合 → Google Token Endpoint に refresh_token でリクエスト
    POST https://oauth2.googleapis.com/token
    { grant_type: "refresh_token", refresh_token: "...", client_id: "...", client_secret: "..." }
-3. 成功 → Account.access_token と Account.expires_at を更新してジョブを継続
-4. 失敗（revoked / invalid_grant 等）→ ジョブを即時 FAILED 終了・エラーログ記録
+3. 成功 → Account.access_token と Account.expires_at を更新し、Account.tokenError を NULL にクリアしてジョブを継続
+4. 失敗（revoked / invalid_grant 等）→ Account.tokenError にエラーコード文字列（例: "invalid_grant"）を書き込み、
+   ジョブを即時 FAILED 終了・エラーログ記録
    （リトライ不要。無限リトライを防ぐため BullMQ の attempts は 1 に設定）
 ```
+
+### トークン失効時のユーザー通知フロー
+
+```
+トークン失効検知から再認証完了までのフロー:
+1. Worker がリフレッシュ失敗を検知
+   → Account.tokenError = "invalid_grant"（または該当するエラーコード）を書き込む
+2. ユーザーが設定画面を開く
+   → GET /api/settings のレスポンスに tokenStatus: "error" が含まれる
+   → 設定画面のアカウントセクションに「要再認証」バナーと再認証ボタンが表示される
+3. ユーザーが「再認証する」ボタンをクリック
+   → NextAuth の signIn("google") フローを開始（既存の Google OAuth フローを再利用）
+4. 再認証成功
+   → NextAuth の signIn コールバックで Account.tokenError を NULL にリセットする
+5. 設定画面の tokenStatus が "valid" に戻り、バナーが非表示になる
+```
+
+トークン失効の主な原因：
+- ユーザーが Google アカウントの「サードパーティアプリのアクセス」からアプリのアクセス権を削除した場合
+- リフレッシュトークンが期限切れになった場合（テスト用 OAuth クライアントは7日で失効）
 
 ---
 
