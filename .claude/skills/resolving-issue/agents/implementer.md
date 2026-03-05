@@ -12,11 +12,19 @@
 {{ISSUE_BODY}}
 ```
 
+## 承認済み実装方針
+
+以下の方針はユーザーが承認済みです。この方針に従って実装してください。
+
+```
+{{APPROVED_PLAN}}
+```
+
 ---
 
 ## 実装手順
 
-1. `docs/` ディレクトリの関連仕様書を確認する（`docs/requirements.md`, `docs/architecture.md`, `docs/database.md`, `docs/openapi.yaml`, `docs/ui/*.md` など）
+1. 承認済み実装方針を確認し、対象ファイルと変更内容を把握する
 2. 既存コードを読んでから変更を加える（読まずに変更しない）
 3. CLAUDE.md のルール（特にYouTube API クォータルール）を遵守する
 4. 実装を行う

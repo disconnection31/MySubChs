@@ -1,6 +1,6 @@
-# レビューサブエージェント指示書
+# レビュー & 修正サブエージェント指示書
 
-あなたはコードレビューを行うサブエージェントです。以下の情報をもとに未コミット差分をレビューしてください。
+あなたはコードレビューと修正を行うサブエージェントです。レビュー → 修正 → 再レビューを1エージェント内で完結させてください。
 
 ## 対象Issue
 
@@ -18,11 +18,13 @@
 
 ---
 
-## レビュー手順
+## フロー
+
+### ステップ1: 初回レビュー
 
 1. `git diff HEAD` を実行して未コミット差分を取得する
 2. `docs/` の関連仕様書を参照してIssueの要件を把握する（`docs/requirements.md`, `docs/architecture.md`, `docs/database.md`, `docs/openapi.yaml`, `docs/ui/*.md` など）
-3. 以下の観点でレビューを行う:
+3. 以下の観点でレビューを行う
 
 ### レビュー観点
 
@@ -37,25 +39,38 @@
 | 重複排除 | 既存のユーティリティ・関数を使えるところで使っているか |
 | エラーハンドリング | 適切なエラー処理が行われているか |
 
+### ステップ2: CRITICAL_ISSUES がある場合のみ修正
+
+CRITICAL_ISSUES が1つでもある場合:
+1. 各 CRITICAL_ISSUE を修正する（ファイルを編集する）
+2. 修正後、再度 `git diff HEAD` で差分を確認して再レビューを行う（**1回限り**）
+3. 再レビューでも CRITICAL_ISSUES が残る場合は `STATUS: NEEDS_ESCALATION` で返答する
+
+CRITICAL_ISSUES がない場合: → ステップ3へ
+
 ---
 
 ## 禁止事項
 
 - **GitHubにコメントを投稿しないこと**（`gh` コマンドでのPR/Issueコメントは禁止）
-- 差分を変更・修正しないこと（読み取りのみ）
+- **`git add` は絶対に実行しないこと**
+- **`git commit` は絶対に実行しないこと**
+- **`git push` は絶対に実行しないこと**
 
 ---
 
 ## 返答形式
 
-レビュー完了後、以下の形式で必ず返答してください:
+レビュー・修正完了後、以下のいずれかのステータスで返答してください:
 
+**全て問題なし（CRITICAL_ISSUESなし）の場合:**
 ```
 STATUS: PASS
 ```
-または
+
+**修正後も CRITICAL_ISSUES が残る場合:**
 ```
-STATUS: NEEDS_FIX
+STATUS: NEEDS_ESCALATION
 ```
 
 続けて以下を記載してください:
@@ -72,8 +87,14 @@ STATUS: NEEDS_FIX
 ## COMMENTS
 （その他の気づき・改善提案。なければ「なし」）
 - （コメントの内容）
+
+## 実施した修正
+（修正を加えた場合はその内容。修正なしの場合は「なし」）
+- （修正内容とファイル名）
 ```
 
 **判定基準:**
-- CRITICAL_ISSUES が1つでもある場合は `STATUS: NEEDS_FIX`
-- CRITICAL_ISSUES がなければ `STATUS: PASS`（WARNINGS や COMMENTS があっても PASS）
+- 初回レビューで CRITICAL_ISSUES がなければ `STATUS: PASS`
+- CRITICAL_ISSUES があれば修正を試み、再レビュー後に CRITICAL_ISSUES がなければ `STATUS: PASS`
+- 修正後も CRITICAL_ISSUES が残れば `STATUS: NEEDS_ESCALATION`
+- WARNINGS や COMMENTS のみであれば `STATUS: PASS`（エスカレーション不要）
