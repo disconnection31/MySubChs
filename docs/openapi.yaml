@@ -383,6 +383,8 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 50
                   example: ゲーム実況
               required: [name]
       responses:
@@ -446,6 +448,8 @@ paths:
               properties:
                 name:
                   type: string
+                  minLength: 1
+                  maxLength: 50
               required: [name]
       responses:
         '200':
