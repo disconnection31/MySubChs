@@ -219,14 +219,16 @@ BullMQ の Repeatable Job は間隔を直接変更できないため、旧ジョ
 
 **実行コンポーネント**: Next.js API ルートハンドラ（設定変更 API `PATCH /api/settings`）
 
-設定変更 API がポーリング間隔の変更を検知した場合、DB への保存と同一トランザクション内（またはその直後）に以下のジョブ再登録処理を実行する。
+設定変更 API がポーリング間隔の変更を検知した場合、DB への保存後に以下のジョブ再登録処理を実行する。
+
+> **注**: PostgreSQL トランザクションと Redis 操作は同一トランザクションにできない。DB 保存成功 → Redis 操作失敗 の場合、DB と Redis で間隔が不整合になる可能性があるが、Worker 起動時の初期登録処理（後述）で自己修復される。
 
 **ジョブ更新手順:**
 
 ```
 1. queue.removeRepeatable("polling-job", { every: <旧間隔ms> })
    ↓
-2. queue.add("polling-job", {}, { repeat: { every: <新間隔ms> }, jobId: "polling-job" })
+2. queue.add("polling-job", {}, { repeat: { every: <新間隔ms> } })
 ```
 
 **実行中ジョブへの影響:**
@@ -235,9 +237,21 @@ BullMQ の Repeatable Job は間隔を直接変更できないため、旧ジョ
 - 新しい間隔は次のジョブサイクル開始時から適用される
 - `removeRepeatable()` は次回スケジュールのエントリのみ削除し、実行中のジョブには影響しない
 
-**Worker 起動時の初期登録との関係:**
+**Worker 起動時の初期登録:**
 
-Worker は起動時にも Repeatable Job を登録する。DB の `UserSetting.pollingIntervalMinutes` を読み取り、常に最新の間隔で登録する（既存の Repeatable Job が残っている場合は同一 `jobId` により上書きされる）。
+BullMQ の Repeatable Job は **ジョブ名 + `every` の値** を組み合わせた Redis キーで一意性が管理される。そのため、異なる `every` 値でジョブを追加しても旧エントリは自動削除されない。Worker 起動時は必ず以下の手順で登録する:
+
+```
+1. queue.getRepeatableJobs() で既存の Repeatable Job 一覧を取得
+   ↓
+2. DB の pollingIntervalMinutes を読み取り、正しい間隔（ms）を確認
+   ↓
+3. 間隔が一致しないエントリがあれば removeRepeatable() で削除
+   ↓
+4. 正しい間隔で queue.add() を実行（既に同一間隔のエントリが存在する場合はスキップ可）
+```
+
+この手順により、API ハンドラでの Redis 操作が失敗した場合も Worker 再起動時に自己修復される。
 
 ### ジョブの流れ
 
