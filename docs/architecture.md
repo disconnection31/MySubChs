@@ -83,7 +83,15 @@ MySubChs/
 │   ├── requirements.md
 │   ├── architecture.md
 │   ├── database.md
-│   └── infrastructure.md
+│   ├── infrastructure.md
+│   ├── openapi.yaml
+│   └── ui/
+│       ├── dashboard.md
+│       ├── channels.md
+│       ├── categories.md
+│       ├── settings.md
+│       ├── login.md
+│       └── pwa.md
 ├── src/
 │   ├── app/                   # Next.js App Router
 │   │   ├── (auth)/
