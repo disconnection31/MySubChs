@@ -1,5 +1,5 @@
 ---
-name: github-issue-creator
+name: creating-issue
 description: GitHubのIssueを作成する。ユーザーから課題・バグ・タスクの概要を受け取ったとき、または「Issueを作って」と言われたときに使用する。
 ---
 

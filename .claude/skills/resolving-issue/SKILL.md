@@ -1,5 +1,5 @@
 ---
-name: github-issue-resolver
+name: resolving-issue
 description: GitHubのIssueを対応する。「Issue #123を対応して」「このIssueを直して」と言われたときに使用する。
 ---
 

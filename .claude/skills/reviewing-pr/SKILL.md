@@ -1,5 +1,5 @@
 ---
-name: github-pr-reviewer
+name: reviewing-pr
 description: GitHubのPRをレビューする。「PR #123 をレビューして」「このPRを確認して」と言われたときに使用する。
 ---
 
