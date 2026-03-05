@@ -31,19 +31,19 @@ MySubChs is a personal web app for organizing YouTube subscriptions into custom 
 - Manual polling has 5-minute cooldown per category (Redis TTL).
 - Polling job deduplication via fixed `jobId` + Redis lock.
 
-## Backend Implementation Rules
+## Implementation Rules
 
 ### External Dependency Values
 - **Never hardcode external dependency values**: Values derived from third-party service specifications (API limits, rate limits, quotas, etc.) must not be hardcoded inline. Define them as named constants in a dedicated config file (e.g., `src/lib/config.ts`) so they can be updated in one place.
 - Example: YouTube API daily quota (`10,000` units), warning threshold (`9,000` units) → define as `YOUTUBE_QUOTA_DAILY_LIMIT` and `YOUTUBE_QUOTA_WARNING_THRESHOLD` in config.
 
-## YouTube API Quota — Implementation Rules
+### YouTube API Quota
 
 YouTube Data API v3 provides 10,000 units/day free. This is a hard limit with no automatic reset until next day UTC. Exceeding it causes all API calls to fail for the rest of the day.
 
 For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/youtube-api.md).
 
-### Mandatory Rules for All Implementations
+#### Mandatory Rules for All Implementations
 - **Never use `search.list`**: Cost is prohibitive (100 units). Use `playlistItems.list` instead.
 - **Cache aggressively**: `uploadsPlaylistId` must be cached in DB after first fetch. Never re-fetch if cached.
 - **No redundant calls**: Do not call the same endpoint for data already available in DB.
@@ -51,44 +51,24 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 - **Minimize polling scope**: Poll only channels in active categories (uncategorized channels excluded).
 - **No quota spend on read-only UI**: Fetching data for display must use DB, not YouTube API.
 
-### Before Implementing Any Feature That Calls YouTube API
+#### Before Implementing Any Feature That Calls YouTube API
 1. Calculate the quota cost per call and per day.
 2. Confirm the cost fits within the daily budget given the polling interval.
 3. Document the cost in code comments near the API call site.
 
-## Documentation Writing Conventions
-
-- **Step and section numbering**: Always start from 1. When inserting a new step or section in the middle, shift subsequent numbers rather than using 0.
-
 ## Documentation
 
-All specs are in Japanese. Key documents:
-- `docs/requirements.md` - Functional/non-functional requirements
-- `docs/architecture.md` - Technical design, polling flow, state machines, quota calculations
-- `docs/database.md` - DB schema, Prisma models, design considerations
+All specs are in Japanese. The `docs/` directory is the Single Source of Truth. When in doubt, consult in this order:
+
+1. `docs/requirements.md` — Functional/non-functional requirements
+2. `docs/architecture.md` — Technical design, polling flow, state machines, quota calculations
+3. `docs/database.md` — DB schema, Prisma models, design considerations
+4. `docs/openapi.yaml` — REST API specification (OpenAPI 3.1)
+5. `docs/ui/*.md` — UI specifications per screen
+
+Other references:
 - `docs/infrastructure.md` - Docker Compose, environment variables, AWS migration
-- `docs/openapi.yaml` - REST API specification (OpenAPI 3.1)
-- `docs/ui/dashboard.md` - UI spec: main dashboard screen
-- `docs/ui/channels.md` - UI spec: channel management screen
-- `docs/ui/categories.md` - UI spec: category management screen
-- `docs/ui/settings.md` - UI spec: settings screen
-- `docs/ui/pwa.md` - UI spec: Service Worker / PWA design
 - `ref/youtube-api.md` - YouTube Data API v3 quota/endpoint reference
-
-## Directory Structure (planned)
-
-```
-src/
-  app/              # Next.js App Router (pages + API routes)
-    (auth)/login/   # Login page
-    (dashboard)/    # Main dashboard, channels, categories, settings
-    api/            # REST API endpoints
-  components/       # UI (shadcn/ui), layout, feature components
-  lib/              # Auth, DB client, Redis client, platform adapters
-  jobs/             # BullMQ job definitions (polling, watchLaterCleanup, contentCleanup)
-  types/            # Shared TypeScript types
-prisma/             # Prisma schema
-```
 
 ## Development Workflow — AI-Driven Spec-Based Development
 
@@ -114,15 +94,6 @@ The `docs/` specs must be written so that Claude Code can implement them without
 3. **Never decide specs unilaterally**: Do not make requirements decisions on your own. When a spec gap is discovered mid-implementation, stop and ask the developer.
 4. **Confirm before creating or modifying specs**: When creating a new `docs/` file or making non-trivial edits to existing ones, always confirm the intended direction with the developer first.
 5. **Keep specs and code in sync**: When a spec change is decided during implementation, update the relevant `docs/` files in the same commit or PR as the code change. Never let specs and code diverge.
-
-### Spec Authority
-
-The `docs/` directory is the Single Source of Truth. When in doubt, consult in this order:
-1. `docs/requirements.md` — Functional and non-functional requirements
-2. `docs/architecture.md` — Technical design, polling flow, state machines
-3. `docs/database.md` — DB schema, Prisma models
-4. `docs/openapi.yaml` — REST API specification
-5. `docs/ui/*.md` — UI specifications per screen
 
 ### Git Workflow
 
