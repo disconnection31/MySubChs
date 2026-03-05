@@ -277,7 +277,8 @@ components:
               type: integer
               description: >
                 全カテゴリ合算の推定1日クォータ消費量（ユニット）。
-                バックエンドで各カテゴリの effectiveInterval とチャンネル数から計算して返す。
+                計算式: Σ(autoPollingEnabled=true の各カテゴリ) { (channelCount + 2) × (1440 / effectiveInterval) }
+                詳細は architecture.md §6「estimatedDailyQuota の計算式」を参照。
                 クォータ警告の判定（estimatedDailyQuota > quotaWarningThreshold）に使用する。
               example: 4900
             quotaWarningThreshold:

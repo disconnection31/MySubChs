@@ -251,7 +251,7 @@ effectiveInterval = NotificationSetting.pollingIntervalMinutes
 |---|---|
 | カテゴリ作成 | `autoPollingEnabled=true` の場合のみジョブ登録。間隔 = グローバルデフォルト（`NotificationSetting.pollingIntervalMinutes` は NULL で作成） |
 | カテゴリ削除 | `auto-poll:{categoryId}` を `removeRepeatable()` で削除 |
-| `pollingIntervalMinutes` 変更 | 旧ジョブ削除 → 新間隔でジョブ再登録 |
+| `pollingIntervalMinutes` 変更 | `autoPollingEnabled=true` の場合: 旧ジョブ削除 → 新間隔でジョブ再登録。`autoPollingEnabled=false` の場合: DB のみ更新・BullMQ 操作なし（次回 `autoPollingEnabled=true` になったときに最新の `pollingIntervalMinutes` でジョブが登録される） |
 | `autoPollingEnabled` → false | `removeRepeatable()` でジョブ削除。`pollingIntervalMinutes` は変更しない（再度 ON にしたとき以前の間隔を復元するため） |
 | `autoPollingEnabled` → true | 有効間隔でジョブ登録 |
 | グローバル設定変更（`PATCH /api/settings`） | `NotificationSetting.pollingIntervalMinutes IS NULL` の全カテゴリのジョブを一括更新 |
@@ -516,8 +516,22 @@ uploadsPlaylistId キャッシュ後: channels.list コスト = 0
 ```
 
 - **デフォルトポーリング間隔は30分**（上記クォータ制約による）
-- 設定画面で5分・10分を選択した場合、チャンネル数が多いとクォータ超過リスクがある旨の警告をUIに表示する（チャンネル数 × 1日のポーリング回数 > 9,000 ユニットで警告）
 - クォータ枯渇時: YouTube API が `quotaExceeded (403)` を返す → ジョブを即時終了し次のスケジュール時刻まで待機（リトライなし）
+
+**`estimatedDailyQuota` の計算式（`GET /api/settings` レスポンスで返す値）:**
+
+```
+estimatedDailyQuota = Σ_{autoPollingEnabled=true の各カテゴリ} (
+  (channelCount + 2) × (1440 / effectiveInterval)
+)
+```
+
+- `channelCount` = そのカテゴリに属するアクティブチャンネル数（`isActive=true`）
+- `effectiveInterval` = `NotificationSetting.pollingIntervalMinutes ?? UserSetting.pollingIntervalMinutes`
+- `+2` = `videos.list` の1ポーリングサイクルあたりの概算コスト（上記試算の「102 units = 100 + 2」に対応）
+- `autoPollingEnabled=false` のカテゴリは計算対象外
+
+クォータ警告の判定: `estimatedDailyQuota > quotaWarningThreshold`（設定画面 UI で表示）
 
 ### 手動ポーリング API
 

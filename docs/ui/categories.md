@@ -263,7 +263,7 @@
 
 | 操作 | APIコール |
 |---|---|
-| 初回表示 | `GET /api/categories` |
+| 初回表示 | `GET /api/categories`、`GET /api/settings`（グローバルポーリング間隔の取得） |
 | カテゴリ追加 | `POST /api/categories` → リスト再取得 |
 | カテゴリ名編集 | `PATCH /api/categories/{categoryId}` → リスト再取得 |
 | カテゴリ削除 | `DELETE /api/categories/{categoryId}` → リスト再取得 |
@@ -271,6 +271,7 @@
 | 設定変更 | `PATCH /api/categories/{categoryId}/settings`（楽観的更新） |
 
 - カテゴリ一覧は TanStack Query でキャッシュし、画面のフォーカス復帰時に再取得する
+- `GET /api/settings` はポーリング間隔セレクトの「グローバル設定を使用（現在: N分）」表示に必要。TanStack Query でキャッシュし、設定画面と同一クエリキーを使用することで既にキャッシュ済みの場合は再フェッチしない
 - 設定変更は楽観的更新を適用し、失敗時にロールバックする
 
 ---
@@ -280,6 +281,7 @@
 | メソッド | パス | 用途 |
 |---|---|---|
 | GET | `/api/categories` | カテゴリ一覧取得 |
+| GET | `/api/settings` | グローバルポーリング間隔の取得（ポーリング間隔セレクトの表示に使用） |
 | POST | `/api/categories` | カテゴリ作成 |
 | PATCH | `/api/categories/{categoryId}` | カテゴリ名更新 |
 | DELETE | `/api/categories/{categoryId}` | カテゴリ削除 |
