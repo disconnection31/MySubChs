@@ -363,7 +363,7 @@
 2. 許可された場合：
    a. navigator.serviceWorker.ready でService Workerの準備を待つ
    b. pushManager.subscribe() で PushSubscription を取得する
-      （applicationServerKey には VAPID 公開鍵を使用）
+      - applicationServerKey: 環境変数 `NEXT_PUBLIC_VAPID_PUBLIC_KEY` の値をそのまま渡す（Base64url 文字列。対象ブラウザはすべて文字列形式を直接受け付ける）
    c. POST /api/notifications/subscriptions で登録する
    d. 成功：状態を「有効化済み」に切り替える
 3. 拒否された場合：
