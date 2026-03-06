@@ -117,6 +117,7 @@ REDIS_URL=
 # Web Push
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # VAPID_PUBLIC_KEY と同じ値を設定する。Next.js の NEXT_PUBLIC_ プレフィックスによりブラウザ（フロントエンド）から参照可能になる。秘密情報ではないため公開して問題ない。
 ```
 
 ---
