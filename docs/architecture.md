@@ -510,7 +510,7 @@ stateDiagram-v2
 - `UserSetting.contentRetentionDays` を参照して削除基準日を計算し、基準日より古い `Content` を物理削除する
 - **削除基準日時**:
   - `type=VIDEO`: `publishedAt`（NULL の場合は `createdAt` にフォールバック）
-  - `type=LIVE`: `scheduledStartAt`（NULL の場合は `createdAt` にフォールバック）
+  - `type=LIVE`: `actualStartAt`（NULL の場合は `scheduledStartAt`、それも NULL の場合は `createdAt` にフォールバック）
 - **削除対象外**: `status=LIVE`（配信中）のコンテンツは削除しない
 - **「後で見る」フラグの扱い**: フラグON（`removedVia IS NULL`）のコンテンツも例外なく削除対象とする
 - `WatchLater` は `Content.onDelete: Cascade` により自動削除されるため、個別削除は不要
