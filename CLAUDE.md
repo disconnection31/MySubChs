@@ -56,6 +56,12 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 2. Confirm the cost fits within the daily budget given the polling interval.
 3. Document the cost in code comments near the API call site.
 
+## Windows/WSL2 Conventions
+
+- **Line endings**: All files use LF. Enforced via `.gitattributes` (`* text=auto eol=lf`) and `.editorconfig` (`end_of_line = lf`).
+- **Git operations**: Must be performed inside WSL2 only. Git operations from Windows side (PowerShell/CMD) are prohibited to prevent CRLF contamination and permission issues.
+- **Editor config**: `indent_style = space`, `indent_size = 2`, `charset = utf-8`, `trim_trailing_whitespace = true`, `insert_final_newline = true`.
+
 ## Documentation
 
 All specs are in Japanese. The `docs/` directory is the Single Source of Truth. When in doubt, consult in this order:
