@@ -56,10 +56,9 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 2. Confirm the cost fits within the daily budget given the polling interval.
 3. Document the cost in code comments near the API call site.
 
-## Windows/WSL2 Conventions
+## Editor Conventions
 
 - **Line endings**: All files use LF. Enforced via `.gitattributes` (`* text=auto eol=lf`) and `.editorconfig` (`end_of_line = lf`).
-- **Git operations**: Must be performed inside WSL2 only. Git operations from Windows side (PowerShell/CMD) are prohibited to prevent CRLF contamination and permission issues.
 - **Editor config**: `indent_style = space`, `indent_size = 2`, `charset = utf-8`, `trim_trailing_whitespace = true`, `insert_final_newline = true`.
 
 ## Documentation
@@ -67,13 +66,17 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 All specs are in Japanese. The `docs/` directory is the Single Source of Truth. When in doubt, consult in this order:
 
 1. `docs/requirements.md` — Functional/non-functional requirements
-2. `docs/architecture.md` — Technical design, polling flow, state machines, quota calculations
+2. `docs/architecture.md` — System architecture, tech stack, directory structure, platform adapter pattern, pagination design
 3. `docs/database.md` — DB schema, Prisma models, design considerations
 4. `docs/openapi.yaml` — REST API specification (OpenAPI 3.1)
-5. `docs/ui/*.md` — UI specifications per screen
+5. `docs/ui/common.md` — Frontend common specs (error handling, optimistic updates)
+6. `docs/ui/*.md` — UI specifications per screen
 
 Other references:
+- `docs/integrations/youtube-auth.md` - Google OAuth flow, channel sync, Worker token management
+- `docs/integrations/youtube-polling.md` - BullMQ polling design, quota management, error handling
 - `docs/infrastructure.md` - Docker Compose, environment variables, AWS migration
+- `docs/error-handling.md` - API error response format, error codes, logging policy
 - `ref/youtube-api.md` - YouTube Data API v3 quota/endpoint reference
 
 ## Development Workflow — AI-Driven Spec-Based Development
