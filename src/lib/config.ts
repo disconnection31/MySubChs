@@ -1,0 +1,3 @@
+// UserSetting のデフォルト値
+export const DEFAULT_POLLING_INTERVAL_MINUTES = 30
+export const DEFAULT_CONTENT_RETENTION_DAYS = 60

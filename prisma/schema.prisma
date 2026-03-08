@@ -45,6 +45,7 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   accounts             Account[]
+  sessions             Session[]
   categories           Category[]
   channels             Channel[]
   watchLaters          WatchLater[]
@@ -62,12 +63,36 @@ model Account {
   access_token      String?
   refresh_token     String?
   expires_at        Int?
+  token_type        String? // @auth/prisma-adapter が要求するフィールド
+  id_token          String? // @auth/prisma-adapter が要求するフィールド
+  session_state     String? // @auth/prisma-adapter が要求するフィールド
   scope             String?
   token_error       String? // トークンエラーコード。BullMQ Worker がリフレッシュ失敗時に書き込む。NULL = 正常。再認証成功時に NULL にリセット
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+}
+
+// JWT strategy のため Session テーブルは実際には使用されないが、
+// @auth/prisma-adapter の型要件を満たすためスキーマに定義する
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// JWT strategy のため VerificationToken テーブルは実際には使用されないが、
+// @auth/prisma-adapter の型要件を満たすためスキーマに定義する
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Category {
