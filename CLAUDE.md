@@ -56,6 +56,46 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
 2. Confirm the cost fits within the daily budget given the polling interval.
 3. Document the cost in code comments near the API call site.
 
+## Testing
+
+### Testing Strategy
+
+- **Test runner**: Vitest
+- **Scope**: Unit tests for `src/lib/` pure functions and jobs logic; integration tests for `src/app/api/` route handlers (using Prisma mocks). UI component tests are out of scope for now.
+- **Prisma mocking**: Use `vitest-mock-extended` (`mockDeep<PrismaClient>()`). Mock `src/lib/db.ts` via `vi.mock('@/lib/db')`.
+- **Auth mocking**: Mock `next-auth`'s `getServerSession` via `vi.mock('next-auth')`.
+
+### Test File Naming and Location
+
+- Co-locate test files with source files.
+- Naming: `{source-file-name}.test.ts`
+- Examples:
+  - `src/lib/config.ts` → `src/lib/config.test.ts`
+  - `src/app/api/categories/route.ts` → `src/app/api/categories/route.test.ts`
+  - `src/jobs/contentCleanup.ts` → `src/jobs/contentCleanup.test.ts`
+
+### Shared Test Infrastructure (set up in T01)
+
+- `src/tests/setup.ts` — Global setup
+- `src/tests/helpers/prisma-mock.ts` — `mockDeep<PrismaClient>()` factory
+- `src/tests/helpers/request-helper.ts` — `NextRequest` builder for API route tests
+- `src/tests/fixtures/` — Shared test data factories
+
+### Test Commands
+
+- Run: `npx vitest run`
+- Watch: `npx vitest`
+- Coverage: `npx vitest run --coverage`
+
+### When to Write Tests
+
+Required when implementing:
+- Any business logic or calculation in `src/lib/`
+- Core API route handlers (`categories`, `contents`, `watch-later`, `settings`)
+- Date-based or conditional logic in `src/jobs/`
+
+Exempt: Worker entry points, UI components, simple pass-through routes.
+
 ## Editor Conventions
 
 - **Line endings**: All files use LF. Enforced via `.gitattributes` (`* text=auto eol=lf`) and `.editorconfig` (`end_of_line = lf`).
