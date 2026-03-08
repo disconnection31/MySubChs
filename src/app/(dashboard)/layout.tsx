@@ -4,7 +4,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main>{children}</main>
+      <div>{children}</div>
     </div>
   )
 }
