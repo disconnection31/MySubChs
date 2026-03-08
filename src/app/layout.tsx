@@ -1,4 +1,7 @@
 import type { Metadata } from 'next'
+
+import { SessionProviderWrapper } from '@/components/layout/SessionProviderWrapper'
+
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -6,14 +9,12 @@ export const metadata: Metadata = {
   description: 'YouTube subscription organizer',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body>{children}</body>
+      <body>
+        <SessionProviderWrapper>{children}</SessionProviderWrapper>
+      </body>
     </html>
   )
 }
