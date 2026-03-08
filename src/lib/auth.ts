@@ -2,6 +2,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
+import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES } from '@/lib/config'
 import { prisma } from '@/lib/db'
 
 export const authOptions: NextAuthOptions = {
@@ -35,73 +36,55 @@ export const authOptions: NextAuthOptions = {
 
       // 再認証時に token_error を NULL にリセットする
       // （youtube-auth.md §4 の仕様: 再認証成功時に token_error を NULL にリセット）
-      // signIn コールバック実行時点では Prisma Adapter による Account の永続化が未完了の場合があるため、
-      // 既存アカウントの存在を確認してから処理する（初回ログイン時は Account が存在しないためスキップ）
+      // 初回ログイン時は Account がまだ存在しないため P2025 (RecordNotFound) が発生するが、
+      // try-catch で握りつぶしてサインインを継続する
       if (account.provider === 'google' && account.providerAccountId) {
-        const existingAccount = await prisma.account.findUnique({
-          where: {
-            provider_providerAccountId: {
-              provider: account.provider,
-              providerAccountId: account.providerAccountId,
-            },
-          },
-          select: { userId: true },
-        })
-
-        if (existingAccount) {
-          await prisma.account.updateMany({
+        try {
+          await prisma.account.update({
             where: {
-              userId: existingAccount.userId,
-              provider: 'google',
-              providerAccountId: account.providerAccountId,
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+              },
             },
             data: { token_error: null },
           })
+        } catch {
+          // 初回ログイン時は Account が未存在のため P2025 が発生する（無視して継続）
         }
       }
 
       return true
     },
 
-    async jwt({ token, user, account, isNewUser }) {
-      // サインイン時（account が存在する場合）にアクセストークンとユーザーIDをJWTに含める
+    async jwt({ token, user, account }) {
+      // サインイン時（account && user が存在する場合）のみ実行する。
       // この時点では Prisma Adapter による User/Account の永続化が完了しており、
-      // user.id は DB の UUID となる
+      // user.id は DB の UUID となる。
       if (account && user) {
         token.userId = user.id
         token.accessToken = account.access_token
-        token.isNewUser = isNewUser ?? false
-      }
 
-      // 初回ログイン時（isNewUser フラグが JWT に保存されている場合）に UserSetting を生成する
-      // jwt コールバックはリクエストごとに呼ばれるため、一度処理したら isNewUser フラグを削除する
-      if (token.isNewUser && token.userId) {
-        // 初回ログイン判定: UserSetting の存在確認（upsert 前に行う）
+        // UserSetting を upsert する（初回ログイン時に作成、2回目以降は update: {} で何もしない）
+        // account && user が存在するのはサインイン直後のみなので、毎回実行しても冪等で安全
         const existingUserSetting = await prisma.userSetting.findUnique({
-          where: { userId: token.userId as string },
+          where: { userId: user.id },
         })
 
-        const isFirstLogin = existingUserSetting === null
-
-        // UserSetting が存在しない場合はデフォルト値で upsert する
-        // （database.md §4 の仕様: 初回ログイン時に自動生成）
         await prisma.userSetting.upsert({
-          where: { userId: token.userId as string },
+          where: { userId: user.id },
           update: {},
           create: {
-            userId: token.userId as string,
-            pollingIntervalMinutes: 30,
-            contentRetentionDays: 60,
+            userId: user.id,
+            pollingIntervalMinutes: DEFAULT_POLLING_INTERVAL_MINUTES,
+            contentRetentionDays: DEFAULT_CONTENT_RETENTION_DAYS,
           },
         })
 
-        if (isFirstLogin) {
+        if (existingUserSetting === null) {
           // T28 で BullMQ ジョブエンキューを実装するため、現時点はログ出力のみ
-          console.log(`[auth] 初回ログイン: userId=${token.userId}`)
+          console.log(`[auth] 初回ログイン: userId=${user.id}`)
         }
-
-        // 処理済みのフラグを削除して次回以降の jwt コールバックで再実行されないようにする
-        token.isNewUser = false
       }
 
       return token

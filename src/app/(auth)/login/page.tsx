@@ -2,7 +2,7 @@
 
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 
 function getErrorMessage(error: string | null): string | null {
   if (!error) return null
@@ -12,7 +12,8 @@ function getErrorMessage(error: string | null): string | null {
   return 'ログインに失敗しました。もう一度お試しください。'
 }
 
-export default function LoginPage() {
+// useSearchParams() を使うため Suspense boundary 内に配置する必要があるコンポーネント
+function LoginContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
   const errorMessage = getErrorMessage(error)
@@ -103,5 +104,13 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }
