@@ -74,7 +74,7 @@ For endpoint costs and full quota reference, see [`ref/youtube-api.md`](ref/yout
   - `src/app/api/categories/route.ts` → `src/app/api/categories/route.test.ts`
   - `src/jobs/contentCleanup.ts` → `src/jobs/contentCleanup.test.ts`
 
-### Shared Test Infrastructure (set up in T01)
+### Shared Test Infrastructure
 
 - `src/tests/setup.ts` — Global setup
 - `src/tests/helpers/prisma-mock.ts` — `mockDeep<PrismaClient>()` factory
