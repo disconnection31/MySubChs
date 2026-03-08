@@ -1,3 +1,4 @@
+import { type Session } from 'next-auth'
 import { describe, expect, it, vi } from 'vitest'
 
 import { decodeCursor, getAuthenticatedSession, isValidPollingInterval } from '@/lib/api-helpers'
@@ -44,7 +45,7 @@ describe('api-helpers', () => {
         user: { email: 'test@example.com', name: 'Test User' },
         expires: '2026-12-31',
       }
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as never)
+      vi.mocked(getServerSession).mockResolvedValue(mockSession as unknown as Session)
 
       const result = await getAuthenticatedSession()
 

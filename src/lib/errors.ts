@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 
+import { MANUAL_POLLING_COOLDOWN_SECONDS } from '@/lib/config'
+
 // docs/error-handling.md §2 に列挙されている全エラーコード
 export const ErrorCode = {
   // 共通 (§2.1)
@@ -84,7 +86,7 @@ export function validationErrorResponse(
  */
 export function cooldownErrorResponse(
   retryAfterSeconds: number,
-  message = '手動ポーリングは5分間隔でのみ実行できます',
+  message = `手動ポーリングは${MANUAL_POLLING_COOLDOWN_SECONDS / 60}分間隔でのみ実行できます`,
 ): NextResponse<ErrorResponseBody> {
   return NextResponse.json(
     {

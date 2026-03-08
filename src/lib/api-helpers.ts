@@ -44,18 +44,14 @@ export function decodeCursor(cursor: string): { contentAt: string; id: string } 
     const decoded = Buffer.from(cursor, 'base64').toString('utf-8')
     const parsed: unknown = JSON.parse(decoded)
 
+    const obj = parsed as Record<string, unknown>
     if (
       typeof parsed === 'object' &&
       parsed !== null &&
-      'contentAt' in parsed &&
-      'id' in parsed &&
-      typeof (parsed as Record<string, unknown>).contentAt === 'string' &&
-      typeof (parsed as Record<string, unknown>).id === 'string'
+      typeof obj.contentAt === 'string' &&
+      typeof obj.id === 'string'
     ) {
-      return {
-        contentAt: (parsed as { contentAt: string; id: string }).contentAt,
-        id: (parsed as { contentAt: string; id: string }).id,
-      }
+      return { contentAt: obj.contentAt, id: obj.id }
     }
 
     return null
