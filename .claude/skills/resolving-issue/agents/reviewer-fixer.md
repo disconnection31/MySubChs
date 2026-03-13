@@ -16,13 +16,6 @@
 - **変更ファイル一覧**: {{CHANGED_FILES}}
 - **実装概要**: {{IMPLEMENTATION_SUMMARY}}
 
-## レビューラウンド情報
-
-- **ラウンド番号**: {{ROUND_NUMBER}}
-- **前回レビュー結果**: {{PREVIOUS_REVIEW_RESULT}}
-
-前回の指摘・修正内容を踏まえ、同じ問題を再指摘するのではなく、新たな観点での問題発見に注力すること。
-
 ---
 
 ## フロー
@@ -72,10 +65,10 @@ CRITICAL_ISSUES または WARNINGS がある場合、以下の手順で修正す
 
 #### 修正の実施
 
-1. **レベルAの指摘**: 自力で修正する（ファイルを編集する）
-2. **レベルB/Cの指摘**: 修正せず、`STATUS: NEEDS_ESCALATION` として報告する（修正内容に仕様判断が必要なため、ユーザーの確認が必要）
-3. 修正後、再度 `git diff HEAD` で差分を確認して再レビューを行う（**1回限り**）
-4. 再レビューでも CRITICAL_ISSUES が残る場合は `STATUS: NEEDS_ESCALATION` で返答する
+- レベルAの指摘は自力で修正する（ファイルを編集する）
+- レベルB/Cの指摘は修正せず、`STATUS: NEEDS_ESCALATION` として報告する
+- 修正後、再度 `git diff HEAD` で差分を確認して再レビューを行う（1回限り）
+- 再レビューでも CRITICAL_ISSUES が残る場合は `STATUS: NEEDS_ESCALATION` で返答する
 
 CRITICAL_ISSUES も WARNINGS もない場合: → ステップ3へ
 
