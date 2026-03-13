@@ -23,3 +23,6 @@ export const MANUAL_POLLING_COOLDOWN_SECONDS = 300
 
 // ポーリング間隔の有効値リスト（分）
 export const VALID_POLLING_INTERVALS = [5, 10, 30, 60] as const
+
+// カテゴリ名の最大文字数
+export const CATEGORY_NAME_MAX_LENGTH = 50
