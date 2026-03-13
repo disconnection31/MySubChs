@@ -51,14 +51,26 @@
 - **コンポーネント**: `ui/` / `layout/` / `features/` の3層構造を守っているか。`'use client'` が最小単位に付与されているか
 - **テスト**: UT対象（lib/ユーティリティ、ジョブの純粋ロジック）にテストが書かれているか。配置はコロケーション方式か
 
-### ステップ2: CRITICAL_ISSUES がある場合のみ修正
+### ステップ2: 指摘事項の修正
 
-CRITICAL_ISSUES が1つでもある場合:
-1. 各 CRITICAL_ISSUE を修正する（ファイルを編集する）
-2. 修正後、再度 `git diff HEAD` で差分を確認して再レビューを行う（**1回限り**）
-3. 再レビューでも CRITICAL_ISSUES が残る場合は `STATUS: NEEDS_ESCALATION` で返答する
+CRITICAL_ISSUES または WARNINGS がある場合、以下の手順で修正する:
 
-CRITICAL_ISSUES がない場合: → ステップ3へ
+#### 修正レベルの判定
+
+各指摘事項について、修正内容が以下のどのレベルに該当するか判定する:
+
+- **レベルA（自力修正可能）**: コードのバグ修正、型エラー修正、命名規則違反、import順序、エラーハンドリング追加、コーディング規約違反など、仕様判断を伴わない技術的な修正
+- **レベルB（仕様判断が必要 → エスカレーション）**: APIレスポンス形式の変更、DB操作のトランザクション境界変更、UI状態遷移の追加、機能の挙動に複数の解釈が成り立つ修正
+- **レベルC（仕様矛盾 → エスカレーション）**: 複数の `docs/` ファイル間の矛盾に起因する修正、要件定義とアーキテクチャ設計の相反に起因する修正
+
+#### 修正の実施
+
+- レベルAの指摘は自力で修正する（ファイルを編集する）
+- レベルB/Cの指摘は修正せず、`STATUS: NEEDS_ESCALATION` として報告する
+- 修正後、再度 `git diff HEAD` で差分を確認して再レビューを行う（1回限り）
+- 再レビューでも CRITICAL_ISSUES が残る場合は `STATUS: NEEDS_ESCALATION` で返答する
+
+CRITICAL_ISSUES も WARNINGS もない場合: → ステップ3へ
 
 ---
 
@@ -106,7 +118,9 @@ STATUS: NEEDS_ESCALATION
 ```
 
 **判定基準:**
-- 初回レビューで CRITICAL_ISSUES がなければ `STATUS: PASS`
-- CRITICAL_ISSUES があれば修正を試み、再レビュー後に CRITICAL_ISSUES がなければ `STATUS: PASS`
+- 初回レビューで CRITICAL_ISSUES も WARNINGS もなければ `STATUS: PASS`
+- CRITICAL_ISSUES または WARNINGS があれば修正を試みる（レベルAのみ自力修正）
+- レベルB/Cの指摘が含まれる場合は `STATUS: NEEDS_ESCALATION`（修正内容と該当レベルを明記）
+- レベルAの修正のみで全て解決すれば `STATUS: PASS`
 - 修正後も CRITICAL_ISSUES が残れば `STATUS: NEEDS_ESCALATION`
-- WARNINGS や COMMENTS のみであれば `STATUS: PASS`（エスカレーション不要）
+- COMMENTS のみであれば `STATUS: PASS`（エスカレーション不要）
