@@ -15,22 +15,18 @@ export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const { subscriptionId } = await context.params
 
-    // Verify ownership
-    const subscription = await prisma.pushSubscription.findFirst({
+    // Delete with ownership check in a single query
+    const { count } = await prisma.pushSubscription.deleteMany({
       where: { id: subscriptionId, userId: auth.userId },
     })
 
-    if (!subscription) {
+    if (count === 0) {
       return errorResponse(
         ErrorCode.PUSH_SUBSCRIPTION_NOT_FOUND,
         '指定されたサブスクリプションが見つかりません',
         404,
       )
     }
-
-    await prisma.pushSubscription.delete({
-      where: { id: subscriptionId },
-    })
 
     return new Response(null, { status: 204 })
   } catch (error) {

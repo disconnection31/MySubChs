@@ -3,6 +3,7 @@
 
 // §2 push event handler
 self.addEventListener('push', (event) => {
+  if (!event.data) return
   const payload = event.data.json()
   event.waitUntil(
     self.registration.showNotification(payload.title, {
@@ -45,6 +46,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 
         const key = newSub.getKey('p256dh')
         const auth = newSub.getKey('auth')
+        if (!key || !auth) return
 
         return fetch('/api/notifications/subscriptions', {
           method: 'POST',

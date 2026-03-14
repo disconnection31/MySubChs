@@ -12,7 +12,12 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body: unknown = await request.json()
+    let body: unknown
+    try {
+      body = await request.json()
+    } catch {
+      return validationErrorResponse([{ field: 'body', message: 'リクエストボディが不正なJSONです' }])
+    }
     const { endpoint, p256dh, auth: authKey, userAgent } = body as {
       endpoint?: string
       p256dh?: string
