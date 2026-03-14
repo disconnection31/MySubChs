@@ -18,6 +18,15 @@ export const YOUTUBE_QUOTA_COST_SEARCH = 100
 // playlistItems.list の maxResults 最大値
 export const YOUTUBE_PLAYLIST_ITEMS_MAX_RESULTS = 50
 
+// videos.list の maxResults 最大値（1 call あたり最大 50 件バッチ処理）
+export const YOUTUBE_VIDEOS_MAX_RESULTS = 50
+
+// channels.list の maxResults 最大値（1 call あたり最大 50 件バッチ処理）
+export const YOUTUBE_CHANNELS_MAX_RESULTS = 50
+
+// subscriptions.list の maxResults 最大値
+export const YOUTUBE_SUBSCRIPTIONS_MAX_RESULTS = 50
+
 // 手動ポーリングのクールダウン（秒）
 export const MANUAL_POLLING_COOLDOWN_SECONDS = 300
 
