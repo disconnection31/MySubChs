@@ -26,3 +26,9 @@ export const VALID_POLLING_INTERVALS = [5, 10, 30, 60] as const
 
 // カテゴリ名の最大文字数
 export const CATEGORY_NAME_MAX_LENGTH = 50
+
+// コンテンツ保持期間の有効値リスト（日）
+export const VALID_CONTENT_RETENTION_DAYS = [30, 60, 90, 180, 365] as const
+
+// videos.list の1ポーリングサイクルあたりの概算コスト（youtube-polling.md §11）
+export const ESTIMATED_QUOTA_OVERHEAD_PER_POLL = 2
