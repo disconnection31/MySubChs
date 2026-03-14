@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 
-import { getAuthenticatedSession, isValidPollingInterval } from '@/lib/api-helpers'
+import {
+  getAuthenticatedSession,
+  isValidContentRetentionDays,
+  isValidPollingInterval,
+} from '@/lib/api-helpers'
 import {
   DEFAULT_CONTENT_RETENTION_DAYS,
   DEFAULT_POLLING_INTERVAL_MINUTES,
-  VALID_CONTENT_RETENTION_DAYS,
   YOUTUBE_QUOTA_DAILY_LIMIT,
   YOUTUBE_QUOTA_WARNING_THRESHOLD,
 } from '@/lib/config'
@@ -20,19 +23,17 @@ export async function GET() {
   }
 
   try {
-    // UserSetting を取得（存在しない場合は upsert でデフォルト値で自動生成）
-    const userSetting = await prisma.userSetting.upsert({
-      where: { userId: auth.userId },
-      update: {},
-      create: {
-        userId: auth.userId,
-        pollingIntervalMinutes: DEFAULT_POLLING_INTERVAL_MINUTES,
-        contentRetentionDays: DEFAULT_CONTENT_RETENTION_DAYS,
-      },
-    })
-
-    // カテゴリデータとアカウント情報を並列取得
-    const [categories, account] = await Promise.all([
+    // UserSetting・カテゴリデータ・アカウント情報を並列取得
+    const [userSetting, categories, account] = await Promise.all([
+      prisma.userSetting.upsert({
+        where: { userId: auth.userId },
+        update: {},
+        create: {
+          userId: auth.userId,
+          pollingIntervalMinutes: DEFAULT_POLLING_INTERVAL_MINUTES,
+          contentRetentionDays: DEFAULT_CONTENT_RETENTION_DAYS,
+        },
+      }),
       prisma.category.findMany({
         where: { userId: auth.userId },
         include: {
@@ -112,10 +113,7 @@ export async function PATCH(request: Request) {
     }
 
     // Validate contentRetentionDays
-    if (
-      contentRetentionDays !== undefined &&
-      !(VALID_CONTENT_RETENTION_DAYS as readonly number[]).includes(contentRetentionDays)
-    ) {
+    if (contentRetentionDays !== undefined && !isValidContentRetentionDays(contentRetentionDays)) {
       return errorResponse(
         ErrorCode.INVALID_RETENTION_DAYS,
         'コンテンツ保持期間が不正です。30, 60, 90, 180, 365 のいずれかを指定してください',

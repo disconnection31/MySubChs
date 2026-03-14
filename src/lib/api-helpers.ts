@@ -1,7 +1,7 @@
 import { getServerSession, type Session } from 'next-auth'
 
 import { authOptions } from '@/lib/auth'
-import { VALID_POLLING_INTERVALS } from '@/lib/config'
+import { VALID_CONTENT_RETENTION_DAYS, VALID_POLLING_INTERVALS } from '@/lib/config'
 
 /**
  * 認証済みセッションを取得する。
@@ -32,6 +32,15 @@ export function isValidPollingInterval(
   value: unknown,
 ): value is (typeof VALID_POLLING_INTERVALS)[number] {
   return (VALID_POLLING_INTERVALS as readonly unknown[]).includes(value)
+}
+
+/**
+ * コンテンツ保持期間値が有効値（VALID_CONTENT_RETENTION_DAYS）に含まれるか検証する型ガード
+ */
+export function isValidContentRetentionDays(
+  value: unknown,
+): value is (typeof VALID_CONTENT_RETENTION_DAYS)[number] {
+  return (VALID_CONTENT_RETENTION_DAYS as readonly unknown[]).includes(value)
 }
 
 /**
