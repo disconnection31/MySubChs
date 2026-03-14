@@ -9,6 +9,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'MySubChs',
   description: 'YouTube subscription organizer',
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
