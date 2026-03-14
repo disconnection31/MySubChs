@@ -196,33 +196,34 @@ export class YouTubeAdapter implements PlatformAdapter {
   ): Promise<ChannelMeta[]> {
     if (platformChannelIds.length === 0) return []
 
-    const results: ChannelMeta[] = []
-
+    const batches: string[][] = []
     for (let i = 0; i < platformChannelIds.length; i += YOUTUBE_CHANNELS_MAX_RESULTS) {
-      const batch = platformChannelIds.slice(i, i + YOUTUBE_CHANNELS_MAX_RESULTS)
+      batches.push(platformChannelIds.slice(i, i + YOUTUBE_CHANNELS_MAX_RESULTS))
+    }
 
-      const params = new URLSearchParams({
-        part: 'snippet,contentDetails',
-        id: batch.join(','),
-        maxResults: String(YOUTUBE_CHANNELS_MAX_RESULTS),
-      })
+    const batchResults = await Promise.all(
+      batches.map((batch) => {
+        // id 指定のバッチAPIのため maxResults は不要（返却件数は id の数で決まる）
+        const params = new URLSearchParams({
+          part: 'snippet,contentDetails',
+          id: batch.join(','),
+        })
+        return this.fetchYouTubeAPI<YouTubeChannelsResponse>(
+          `${YOUTUBE_API_BASE}/channels?${params}`,
+          accessToken,
+        )
+      }),
+    )
 
-      const data = await this.fetchYouTubeAPI<YouTubeChannelsResponse>(
-        `${YOUTUBE_API_BASE}/channels?${params}`,
-        accessToken,
-      )
-
-      for (const item of data.items ?? []) {
-        results.push({
+    return batchResults.flatMap(
+      (data) =>
+        data.items?.map((item) => ({
           platformChannelId: item.id,
           name: item.snippet.title,
           iconUrl: item.snippet.thumbnails?.default?.url ?? null,
           uploadsPlaylistId: item.contentDetails.relatedPlaylists.uploads,
-        })
-      }
-    }
-
-    return results
+        })) ?? [],
+    )
   }
 
   /**
@@ -265,24 +266,28 @@ export class YouTubeAdapter implements PlatformAdapter {
   ): Promise<VideoDetail[]> {
     if (platformContentIds.length === 0) return []
 
-    const results: VideoDetail[] = []
-
+    const batches: string[][] = []
     for (let i = 0; i < platformContentIds.length; i += YOUTUBE_VIDEOS_MAX_RESULTS) {
-      const batch = platformContentIds.slice(i, i + YOUTUBE_VIDEOS_MAX_RESULTS)
+      batches.push(platformContentIds.slice(i, i + YOUTUBE_VIDEOS_MAX_RESULTS))
+    }
 
-      const params = new URLSearchParams({
-        part: 'snippet,liveStreamingDetails',
-        id: batch.join(','),
-        maxResults: String(YOUTUBE_VIDEOS_MAX_RESULTS),
-      })
+    const batchResults = await Promise.all(
+      batches.map((batch) => {
+        // id 指定のバッチAPIのため maxResults は不要（返却件数は id の数で決まる）
+        const params = new URLSearchParams({
+          part: 'snippet,liveStreamingDetails',
+          id: batch.join(','),
+        })
+        return this.fetchYouTubeAPI<YouTubeVideosResponse>(
+          `${YOUTUBE_API_BASE}/videos?${params}`,
+          accessToken,
+        )
+      }),
+    )
 
-      const data = await this.fetchYouTubeAPI<YouTubeVideosResponse>(
-        `${YOUTUBE_API_BASE}/videos?${params}`,
-        accessToken,
-      )
-
-      for (const item of data.items ?? []) {
-        results.push({
+    return batchResults.flatMap(
+      (data) =>
+        data.items?.map((item) => ({
           platformContentId: item.id,
           title: item.snippet.title,
           liveBroadcastContent: item.snippet.liveBroadcastContent,
@@ -290,11 +295,8 @@ export class YouTubeAdapter implements PlatformAdapter {
           scheduledStartTime: item.liveStreamingDetails?.scheduledStartTime ?? null,
           actualStartTime: item.liveStreamingDetails?.actualStartTime ?? null,
           actualEndTime: item.liveStreamingDetails?.actualEndTime ?? null,
-        })
-      }
-    }
-
-    return results
+        })) ?? [],
+    )
   }
 }
 
