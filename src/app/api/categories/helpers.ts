@@ -5,6 +5,23 @@ export type CategoryWithNotificationSetting = Category & {
 }
 
 /**
+ * NotificationSetting を openapi.yaml 準拠のレスポンス形式に変換する。
+ * 内部フィールド (id, userId, categoryId, createdAt, updatedAt) を除外し、
+ * 公開フィールドのみを返す。
+ */
+export function formatNotificationSetting(setting: NotificationSetting) {
+  return {
+    notifyOnNewVideo: setting.notifyOnNewVideo,
+    notifyOnLiveStart: setting.notifyOnLiveStart,
+    notifyOnUpcoming: setting.notifyOnUpcoming,
+    watchLaterDefault: setting.watchLaterDefault,
+    autoExpireHours: setting.autoExpireHours,
+    autoPollingEnabled: setting.autoPollingEnabled,
+    pollingIntervalMinutes: setting.pollingIntervalMinutes,
+  }
+}
+
+/**
  * Category + NotificationSetting を openapi.yaml 準拠のレスポンス形式に変換する。
  * notificationSetting -> settings にリネームし、内部フィールドを除外する。
  */
@@ -13,16 +30,6 @@ export function formatCategory(category: CategoryWithNotificationSetting) {
 
   return {
     ...rest,
-    settings: notificationSetting
-      ? {
-          notifyOnNewVideo: notificationSetting.notifyOnNewVideo,
-          notifyOnLiveStart: notificationSetting.notifyOnLiveStart,
-          notifyOnUpcoming: notificationSetting.notifyOnUpcoming,
-          watchLaterDefault: notificationSetting.watchLaterDefault,
-          autoExpireHours: notificationSetting.autoExpireHours,
-          autoPollingEnabled: notificationSetting.autoPollingEnabled,
-          pollingIntervalMinutes: notificationSetting.pollingIntervalMinutes,
-        }
-      : null,
+    settings: notificationSetting ? formatNotificationSetting(notificationSetting) : null,
   }
 }

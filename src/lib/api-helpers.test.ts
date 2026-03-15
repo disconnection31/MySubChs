@@ -1,7 +1,12 @@
 import { type Session } from 'next-auth'
 import { describe, expect, it, vi } from 'vitest'
 
-import { decodeCursor, getAuthenticatedSession, isValidPollingInterval } from '@/lib/api-helpers'
+import {
+  decodeCursor,
+  getAuthenticatedSession,
+  isValidAutoExpireHours,
+  isValidPollingInterval,
+} from '@/lib/api-helpers'
 
 // next-auth の getServerSession をモックする
 vi.mock('next-auth', () => ({
@@ -88,6 +93,44 @@ describe('api-helpers', () => {
 
     it('undefined で false を返す', () => {
       expect(isValidPollingInterval(undefined)).toBe(false)
+    })
+  })
+
+  describe('isValidAutoExpireHours()', () => {
+    it('有効な値 24 で true を返す', () => {
+      expect(isValidAutoExpireHours(24)).toBe(true)
+    })
+
+    it('有効な値 72 で true を返す', () => {
+      expect(isValidAutoExpireHours(72)).toBe(true)
+    })
+
+    it('有効な値 168 で true を返す', () => {
+      expect(isValidAutoExpireHours(168)).toBe(true)
+    })
+
+    it('有効な値 336 で true を返す', () => {
+      expect(isValidAutoExpireHours(336)).toBe(true)
+    })
+
+    it('無効な値 48 で false を返す', () => {
+      expect(isValidAutoExpireHours(48)).toBe(false)
+    })
+
+    it('無効な値 0 で false を返す', () => {
+      expect(isValidAutoExpireHours(0)).toBe(false)
+    })
+
+    it('文字列 "24" で false を返す（型が異なる）', () => {
+      expect(isValidAutoExpireHours('24')).toBe(false)
+    })
+
+    it('null で false を返す', () => {
+      expect(isValidAutoExpireHours(null)).toBe(false)
+    })
+
+    it('undefined で false を返す', () => {
+      expect(isValidAutoExpireHours(undefined)).toBe(false)
     })
   })
 
