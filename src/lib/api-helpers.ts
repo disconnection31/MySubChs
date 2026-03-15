@@ -1,7 +1,11 @@
 import { getServerSession, type Session } from 'next-auth'
 
 import { authOptions } from '@/lib/auth'
-import { VALID_CONTENT_RETENTION_DAYS, VALID_POLLING_INTERVALS } from '@/lib/config'
+import {
+  VALID_AUTO_EXPIRE_HOURS,
+  VALID_CONTENT_RETENTION_DAYS,
+  VALID_POLLING_INTERVALS,
+} from '@/lib/config'
 
 /**
  * 認証済みセッションを取得する。
@@ -26,22 +30,21 @@ export async function getAuthenticatedSession(): Promise<{
 }
 
 /**
- * ポーリング間隔値が有効値（VALID_POLLING_INTERVALS）に含まれるか検証する型ガード
+ * 許可値リストに対する型ガード関数を生成するファクトリ
  */
-export function isValidPollingInterval(
-  value: unknown,
-): value is (typeof VALID_POLLING_INTERVALS)[number] {
-  return (VALID_POLLING_INTERVALS as readonly unknown[]).includes(value)
+function makeAllowedValuesGuard<T extends readonly unknown[]>(allowed: T) {
+  return (value: unknown): value is T[number] =>
+    (allowed as readonly unknown[]).includes(value)
 }
 
-/**
- * コンテンツ保持期間値が有効値（VALID_CONTENT_RETENTION_DAYS）に含まれるか検証する型ガード
- */
-export function isValidContentRetentionDays(
-  value: unknown,
-): value is (typeof VALID_CONTENT_RETENTION_DAYS)[number] {
-  return (VALID_CONTENT_RETENTION_DAYS as readonly unknown[]).includes(value)
-}
+/** ポーリング間隔値が有効値（VALID_POLLING_INTERVALS）に含まれるか検証する型ガード */
+export const isValidPollingInterval = makeAllowedValuesGuard(VALID_POLLING_INTERVALS)
+
+/** コンテンツ保持期間値が有効値（VALID_CONTENT_RETENTION_DAYS）に含まれるか検証する型ガード */
+export const isValidContentRetentionDays = makeAllowedValuesGuard(VALID_CONTENT_RETENTION_DAYS)
+
+/** WatchLater 自動失効時間値が有効値（VALID_AUTO_EXPIRE_HOURS）に含まれるか検証する型ガード */
+export const isValidAutoExpireHours = makeAllowedValuesGuard(VALID_AUTO_EXPIRE_HOURS)
 
 /**
  * Base64 エンコードされたカーソル文字列をデコードする。

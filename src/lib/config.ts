@@ -36,6 +36,10 @@ export const VALID_POLLING_INTERVALS = [5, 10, 30, 60] as const
 // カテゴリ名の最大文字数
 export const CATEGORY_NAME_MAX_LENGTH = 50
 
+// WatchLater 自動失効時間の有効値リスト（時間）
+// UI: 1日=24h, 3日=72h, 1週間=168h, 2週間=336h
+export const VALID_AUTO_EXPIRE_HOURS = [24, 72, 168, 336] as const
+
 // コンテンツ保持期間の有効値リスト（日）
 export const VALID_CONTENT_RETENTION_DAYS = [30, 60, 90, 180, 365] as const
 
