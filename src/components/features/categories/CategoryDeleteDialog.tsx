@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -29,17 +28,14 @@ export function CategoryDeleteDialog({
   onOpenChange,
 }: CategoryDeleteDialogProps) {
   const deleteCategory = useDeleteCategory()
-  const [isDeleting, setIsDeleting] = useState(false)
+  const isDeleting = deleteCategory.isPending
 
   const handleDelete = async () => {
-    setIsDeleting(true)
     try {
       await deleteCategory.mutateAsync(categoryId)
       onOpenChange(false)
     } catch {
       toast.error('カテゴリの削除に失敗しました')
-    } finally {
-      setIsDeleting(false)
     }
   }
 

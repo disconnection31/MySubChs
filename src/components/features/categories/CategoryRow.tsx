@@ -172,12 +172,14 @@ export function CategoryRow({ category, isDndDisabled }: CategoryRowProps) {
         </Button>
       </div>
 
-      <CategoryDeleteDialog
-        categoryId={category.id}
-        categoryName={category.name}
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      />
+      {deleteDialogOpen && (
+        <CategoryDeleteDialog
+          categoryId={category.id}
+          categoryName={category.name}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+        />
+      )}
     </>
   )
 }

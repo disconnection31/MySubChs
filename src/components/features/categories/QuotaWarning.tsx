@@ -17,7 +17,7 @@ export function QuotaWarning({ settings }: QuotaWarningProps) {
   const isOverThreshold = estimatedDailyQuota > quotaWarningThreshold
 
   return (
-    <div className="space-y-2">
+    <div className="mb-4 space-y-2">
       <p className="text-sm text-muted-foreground">
         推定1日クォータ使用量: {estimatedDailyQuota.toLocaleString()} / {quotaDailyLimit.toLocaleString()} units
       </p>

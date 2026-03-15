@@ -26,16 +26,19 @@ type CategoryListProps = {
   categories: CategoryResponse[]
 }
 
+const MOBILE_QUERY = '(max-width: 767px)'
+
 export function CategoryList({ categories }: CategoryListProps) {
   const [isMobile, setIsMobile] = useState(false)
   const reorderCategories = useReorderCategories()
   const isReordering = reorderCategories.isPending
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    const mql = window.matchMedia(MOBILE_QUERY)
+    setIsMobile(mql.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
   }, [])
 
   const sensors = useSensors(
@@ -76,7 +79,7 @@ export function CategoryList({ categories }: CategoryListProps) {
   return (
     <div className={isReordering ? 'pointer-events-none opacity-70' : ''}>
       <DndContext
-        sensors={isMobile ? [] : sensors}
+        sensors={isMobile ? undefined : sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
