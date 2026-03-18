@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUMs
+// ---------------------------------------------------------------------------
+
+enum ContentType {
+  VIDEO // 投稿動画。不変。
+  LIVE // ライブ配信（予定中・配信中・終了後のすべてを含む）。不変。
+}
+
+enum ContentStatus {
+  UPCOMING // 配信予定（type=LIVE のみ）
+  LIVE // 配信中（type=LIVE のみ）
+  ARCHIVED // アーカイブ済（type=VIDEO または type=LIVE の配信終了後）
+  CANCELLED // キャンセル（type=LIVE のみ。配信予定がキャンセルされた場合）
+}
+
+enum WatchLaterSource {
+  MANUAL
+  AUTO
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts             Account[]
+  sessions             Session[]
+  categories           Category[]
+  channels             Channel[]
+  watchLaters          WatchLater[]
+  pushSubscriptions    PushSubscription[]
+  notificationSettings NotificationSetting[]
+  userSetting          UserSetting?
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  access_token      String?
+  refresh_token     String?
+  expires_at        Int?
+  token_type        String? // @auth/prisma-adapter が要求するフィールド
+  id_token          String? // @auth/prisma-adapter が要求するフィールド
+  session_state     String? // @auth/prisma-adapter が要求するフィールド
+  scope             String?
+  token_error       String? // トークンエラーコード。BullMQ Worker がリフレッシュ失敗時に書き込む。NULL = 正常。再認証成功時に NULL にリセット
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// JWT strategy のため Session テーブルは実際には使用されないが、
+// @auth/prisma-adapter の型要件を満たすためスキーマに定義する
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// JWT strategy のため VerificationToken テーブルは実際には使用されないが、
+// @auth/prisma-adapter の型要件を満たすためスキーマに定義する
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  sortOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channels             Channel[]
+  notificationSetting  NotificationSetting?
+
+  @@unique([userId, name])
+}
+
+model Channel {
+  id                String    @id @default(uuid())
+  userId            String
+  platform          String // "youtube" | "twitch" など
+  platformChannelId String
+  name              String
+  iconUrl           String?
+  uploadsPlaylistId String? // YouTubeのアップロードプレイリストID。初回ポーリング時に channels.list で取得してキャッシュ
+  lastPolledAt      DateTime?
+  categoryId        String? // FK → Category。NULL = 未分類
+  isActive          Boolean   @default(true) // isActive = false のチャンネルはポーリング対象から除外
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  contents Content[]
+
+  @@unique([userId, platform, platformChannelId])
+}
+
+model Content {
+  id                String        @id @default(uuid())
+  channelId         String
+  platform          String // "youtube" など（冗長化で検索を最適化）
+  platformContentId String
+  title             String
+  type              ContentType
+  status            ContentStatus // 動画はARCHIVED、ライブ予定はUPCOMING、配信中はLIVEで登録
+  publishedAt       DateTime?
+  scheduledStartAt  DateTime?
+  actualStartAt     DateTime?
+  actualEndAt       DateTime?
+  contentAt         DateTime // ソート専用キー（architecture.md §6 参照）
+  url               String // コンテンツURL（不変）。INSERT 時にのみ設定
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  channel     Channel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  watchLaters WatchLater[]
+
+  @@unique([platform, platformContentId])
+  @@index([contentAt])
+}
+
+model WatchLater {
+  userId     String
+  contentId  String
+  addedVia   WatchLaterSource @default(MANUAL)
+  removedVia String? // NULL = アクティブ。'MANUAL' = ユーザーが手動削除。ポーリングはNOT NULLの場合再追加しない
+  expiresAt  DateTime?
+  addedAt    DateTime         @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, contentId])
+  @@index([userId, expiresAt])
+}
+
+model NotificationSetting {
+  id                     String   @id @default(uuid())
+  userId                 String
+  categoryId             String   @unique
+  notifyOnNewVideo       Boolean  @default(true)
+  notifyOnLiveStart      Boolean  @default(true)
+  notifyOnUpcoming       Boolean  @default(false)
+  watchLaterDefault      Boolean  @default(false)
+  autoExpireHours        Int? // 自動失効時間（時間単位）。NULL = 失効なし
+  autoPollingEnabled     Boolean  @default(true) // falseのカテゴリのチャンネルは定期ポーリング対象外（手動ポーリングは常に可能）
+  pollingIntervalMinutes Int? // カテゴリ個別ポーリング間隔（分）。NULL = UserSetting.pollingIntervalMinutes を使用。選択肢: 5/10/30/60
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique // upsert のキー
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSetting {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  pollingIntervalMinutes Int      @default(30) // 選択肢: 5/10/30/60
+  contentRetentionDays   Int      @default(60) // 選択肢: 30/60/90/180/365（2ヶ月=60日がデフォルト）
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
