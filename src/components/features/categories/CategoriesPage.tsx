@@ -56,7 +56,10 @@ export function CategoriesPage() {
           <QuotaWarning settings={settings} />
 
           {hasCategories ? (
-            <CategoryList categories={categories} />
+            <CategoryList
+              categories={categories}
+              globalPollingInterval={settings?.pollingIntervalMinutes ?? 30}
+            />
           ) : (
             <CategoryEmptyState />
           )}
