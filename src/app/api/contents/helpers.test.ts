@@ -63,7 +63,7 @@ function makeContentWithRelations(
 describe('formatContent', () => {
   it('Content を API レスポンス形式に変換する', () => {
     const content = makeContentWithRelations()
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result).toEqual({
       id: 'content-1',
@@ -92,7 +92,7 @@ describe('formatContent', () => {
   it('アクティブな WatchLater がある場合に watchLater を返す', () => {
     const wl = makeWatchLater()
     const content = makeContentWithRelations({}, undefined, [wl])
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result.watchLater).toEqual({
       addedVia: 'MANUAL',
@@ -104,7 +104,7 @@ describe('formatContent', () => {
   it('removedVia が設定済みの WatchLater は無視する', () => {
     const wl = makeWatchLater({ removedVia: 'MANUAL' })
     const content = makeContentWithRelations({}, undefined, [wl])
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result.watchLater).toBeNull()
   })
@@ -112,7 +112,7 @@ describe('formatContent', () => {
   it('expiresAt が過去の WatchLater は無視する', () => {
     const wl = makeWatchLater({ expiresAt: new Date('2020-01-01T00:00:00.000Z') })
     const content = makeContentWithRelations({}, undefined, [wl])
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result.watchLater).toBeNull()
   })
@@ -120,14 +120,14 @@ describe('formatContent', () => {
   it('異なる userId の WatchLater は無視する', () => {
     const wl = makeWatchLater({ userId: 'other-user' })
     const content = makeContentWithRelations({}, undefined, [wl])
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result.watchLater).toBeNull()
   })
 
   it('channel.iconUrl が null の場合にも変換できる', () => {
     const content = makeContentWithRelations({}, { iconUrl: null })
-    const result = formatContent(content, 'user-1')
+    const result = formatContent(content, 'user-1', new Date())
 
     expect(result.channel.iconUrl).toBeNull()
   })

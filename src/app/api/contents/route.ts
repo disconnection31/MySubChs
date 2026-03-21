@@ -6,7 +6,7 @@ import { DEFAULT_CONTENTS_LIMIT, MAX_CONTENTS_LIMIT } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
 
-import { buildPaginationMeta, formatContent } from './helpers'
+import { activeWatchLaterWhere, buildPaginationMeta, formatContent } from './helpers'
 
 export async function GET(request: NextRequest) {
   const auth = await getAuthenticatedSession()
@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = request.nextUrl
+    const now = new Date()
 
-    // --- Parse and validate query parameters ---
     const categoryId = searchParams.get('categoryId')
     if (!categoryId) {
       return errorResponse(
@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
     const watchLaterOnlyParam = searchParams.get('watchLaterOnly') === 'true'
     const includeCancelledParam = searchParams.get('includeCancelled') === 'true'
 
-    // Validate order
     if (orderParam !== 'asc' && orderParam !== 'desc') {
       return errorResponse(
         ErrorCode.VALIDATION_ERROR,
@@ -41,7 +40,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate and parse limit
     let limit = DEFAULT_CONTENTS_LIMIT
     const limitParam = searchParams.get('limit')
     if (limitParam !== null) {
@@ -56,7 +54,6 @@ export async function GET(request: NextRequest) {
       limit = parsed
     }
 
-    // Decode cursor if provided
     let cursorData: { contentAt: string; id: string } | null = null
     if (cursorParam) {
       cursorData = decodeCursor(cursorParam)
@@ -69,7 +66,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // --- Resolve channel IDs for the category ---
     let channelIds: string[]
 
     if (categoryId === 'uncategorized') {
@@ -83,7 +79,6 @@ export async function GET(request: NextRequest) {
       })
       channelIds = channels.map((c) => c.id)
     } else {
-      // Verify category belongs to user by filtering with userId
       const channels = await prisma.channel.findMany({
         where: {
           category: {
@@ -97,7 +92,6 @@ export async function GET(request: NextRequest) {
       channelIds = channels.map((c) => c.id)
     }
 
-    // If no channels found (including non-existent category), return empty array
     if (channelIds.length === 0) {
       return Response.json({
         data: [],
@@ -105,31 +99,20 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // --- Build Prisma where clause ---
     const where: Prisma.ContentWhereInput = {
       channelId: { in: channelIds },
     }
 
-    // Exclude CANCELLED by default
     if (!includeCancelledParam) {
       where.status = { not: 'CANCELLED' }
     }
 
-    // WatchLater filter
     if (watchLaterOnlyParam) {
       where.watchLaters = {
-        some: {
-          userId: auth.userId,
-          removedVia: null,
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: new Date() } },
-          ],
-        },
+        some: activeWatchLaterWhere(auth.userId, now),
       }
     }
 
-    // Cursor-based pagination condition
     if (cursorData) {
       const cursorDate = new Date(cursorData.contentAt)
       if (orderParam === 'desc') {
@@ -145,7 +128,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // --- Fetch contents (N+1 pattern) ---
     const contents = await prisma.content.findMany({
       where,
       orderBy: [
@@ -158,21 +140,13 @@ export async function GET(request: NextRequest) {
           select: { name: true, iconUrl: true },
         },
         watchLaters: {
-          where: {
-            userId: auth.userId,
-            removedVia: null,
-            OR: [
-              { expiresAt: null },
-              { expiresAt: { gt: new Date() } },
-            ],
-          },
+          where: activeWatchLaterWhere(auth.userId, now),
         },
       },
     })
 
-    // --- Build response ---
     const meta = buildPaginationMeta(contents, limit)
-    const data = contents.slice(0, limit).map((c) => formatContent(c, auth.userId))
+    const data = contents.slice(0, limit).map((c) => formatContent(c, auth.userId, now))
 
     return Response.json({ data, meta })
   } catch (error) {
