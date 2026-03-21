@@ -54,6 +54,64 @@ export type CategoryResponse = {
   settings: NotificationSettingResponse | null
 }
 
+// --- Channel ---
+
+export type ChannelResponse = {
+  id: string
+  platform: string
+  platformChannelId: string
+  name: string
+  iconUrl: string | null
+  categoryId: string | null
+  isActive: boolean
+  lastPolledAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// --- Content ---
+
+export type ContentChannelResponse = {
+  name: string
+  iconUrl: string | null
+}
+
+export type WatchLaterResponse = {
+  addedVia: 'MANUAL' | 'AUTO'
+  expiresAt: string | null
+  addedAt: string
+}
+
+export type ContentResponse = {
+  id: string
+  channelId: string
+  platform: string
+  platformContentId: string
+  title: string
+  type: 'VIDEO' | 'LIVE'
+  status: 'UPCOMING' | 'LIVE' | 'ARCHIVED' | 'CANCELLED'
+  contentAt: string
+  publishedAt: string | null
+  scheduledStartAt: string | null
+  actualStartAt: string | null
+  actualEndAt: string | null
+  url: string
+  channel: ContentChannelResponse
+  watchLater: WatchLaterResponse | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type PaginationMeta = {
+  hasNext: boolean
+  nextCursor: string | null
+}
+
+export type PaginatedResponse<T> = {
+  data: T[]
+  meta: PaginationMeta
+}
+
 // --- UserSettings (GET /api/settings) ---
 
 export type UserSettingsResponse = {

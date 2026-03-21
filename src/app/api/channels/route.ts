@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
 import { prisma } from '@/lib/db'
@@ -6,30 +6,18 @@ import { ErrorCode, errorResponse } from '@/lib/errors'
 
 import { formatChannel } from './helpers'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const auth = await getAuthenticatedSession()
   if (!auth) {
     return errorResponse(ErrorCode.UNAUTHORIZED, '認証が必要です', 401)
   }
 
   try {
-    const url = new URL(request.url)
+    const searchParams = request.nextUrl.searchParams
+    const isActiveParam = searchParams.get('isActive')
+    const categoryIdParam = searchParams.get('categoryId')
 
-    // isActive filter: defaults to true when omitted
-    const isActiveParam = url.searchParams.get('isActive')
-    let isActive = true
-    if (isActiveParam === 'false') {
-      isActive = false
-    }
-
-    // categoryId filter: supports UUID or 'uncategorized' keyword
-    const categoryIdParam = url.searchParams.get('categoryId')
-    let categoryIdFilter: string | null | undefined = undefined
-    if (categoryIdParam === 'uncategorized') {
-      categoryIdFilter = null // null means uncategorized (categoryId IS NULL)
-    } else if (categoryIdParam) {
-      categoryIdFilter = categoryIdParam
-    }
+    const isActive = isActiveParam !== 'false'
 
     const where: {
       userId: string
@@ -40,12 +28,17 @@ export async function GET(request: Request) {
       isActive,
     }
 
-    if (categoryIdFilter !== undefined) {
-      where.categoryId = categoryIdFilter
+    if (categoryIdParam) {
+      if (categoryIdParam === 'uncategorized') {
+        where.categoryId = null
+      } else {
+        where.categoryId = categoryIdParam
+      }
     }
 
     const channels = await prisma.channel.findMany({
       where,
+      orderBy: { name: 'asc' },
     })
 
     return NextResponse.json(channels.map(formatChannel))

@@ -1,0 +1,33 @@
+{
+  "permissions": {
+      "allow": [
+        "Bash(git:*)",
+        "Bash(gh issue:*)",
+        "Bash(gh pr:*)",
+        "Bash(npm show:*)",
+        "Bash(node:*)",
+        "Bash(npx eslint:*)",
+        "Bash(npx prisma:*)",
+        "Bash(npx tsc:*)",
+        "Bash(npx vitest:*)",
+        "Bash(docker compose:*)",
+        "Bash(cat:*)",
+        "Bash(cd:*)",
+        "Bash(ls:*)",
+        "Bash(mkdir:*)",
+        "Bash(xargs grep:*)"
+      ],
+      "deny": [
+        "Bash(git clean -fd*)",
+        "Bash(git clean -fxd*)",
+        "Bash(git push --force *)",
+        "Bash(git push --force)",
+        "Bash(git push -f *)",
+        "Bash(git push -f)",
+        "Bash(git push * main*)",
+        "Bash(git reset --hard*)",
+        "Bash(docker compose down -v*)",
+        "Bash(docker compose down --volumes*)"
+      ]
+  }
+}

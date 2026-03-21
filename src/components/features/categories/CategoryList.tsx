@@ -24,11 +24,12 @@ import { CategoryRow } from './CategoryRow'
 
 type CategoryListProps = {
   categories: CategoryResponse[]
+  globalPollingInterval: number
 }
 
 const MOBILE_QUERY = '(max-width: 767px)'
 
-export function CategoryList({ categories }: CategoryListProps) {
+export function CategoryList({ categories, globalPollingInterval }: CategoryListProps) {
   const [isMobile, setIsMobile] = useState(false)
   const reorderCategories = useReorderCategories()
   const isReordering = reorderCategories.isPending
@@ -93,6 +94,7 @@ export function CategoryList({ categories }: CategoryListProps) {
                 key={category.id}
                 category={category}
                 isDndDisabled={isDndDisabled}
+                globalPollingInterval={globalPollingInterval}
               />
             ))}
           </div>

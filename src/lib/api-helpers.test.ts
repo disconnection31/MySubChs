@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import {
   decodeCursor,
+  encodeCursor,
   getAuthenticatedSession,
   isValidAutoExpireHours,
   isValidPollingInterval,
@@ -131,6 +132,28 @@ describe('api-helpers', () => {
 
     it('undefined で false を返す', () => {
       expect(isValidAutoExpireHours(undefined)).toBe(false)
+    })
+  })
+
+  describe('encodeCursor()', () => {
+    it('contentAt と id を Base64 エンコードされた JSON 文字列に変換する', () => {
+      const contentAt = '2026-01-01T00:00:00.000Z'
+      const id = 'content-123'
+
+      const result = encodeCursor(contentAt, id)
+
+      const decoded = JSON.parse(Buffer.from(result, 'base64').toString('utf-8'))
+      expect(decoded).toEqual({ contentAt, id })
+    })
+
+    it('encodeCursor の結果を decodeCursor で復元できる', () => {
+      const contentAt = '2026-03-15T10:30:00.000Z'
+      const id = 'abc-def-ghi'
+
+      const encoded = encodeCursor(contentAt, id)
+      const decoded = decodeCursor(encoded)
+
+      expect(decoded).toEqual({ contentAt, id })
     })
   })
 

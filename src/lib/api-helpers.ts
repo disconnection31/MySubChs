@@ -47,6 +47,14 @@ export const isValidContentRetentionDays = makeAllowedValuesGuard(VALID_CONTENT_
 export const isValidAutoExpireHours = makeAllowedValuesGuard(VALID_AUTO_EXPIRE_HOURS)
 
 /**
+ * カーソル情報を Base64 エンコードされた文字列に変換する。
+ * keyset pagination の nextCursor 生成用。
+ */
+export function encodeCursor(contentAt: string, id: string): string {
+  return Buffer.from(JSON.stringify({ contentAt, id })).toString('base64')
+}
+
+/**
  * Base64 エンコードされたカーソル文字列をデコードする。
  * デコードまたは JSON 解析に失敗した場合は null を返す。
  * docs/error-handling.md §2.4 INVALID_CURSOR エラー用
