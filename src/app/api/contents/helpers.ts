@@ -1,7 +1,7 @@
-import type { Content, Channel, WatchLater } from '@prisma/client'
+import type { Content, Channel, WatchLater, Prisma } from '@prisma/client'
 
 import { encodeCursor } from '@/lib/api-helpers'
-import type { ContentResponse, WatchLaterResponse } from '@/types/api'
+import type { ContentResponse, PaginationMeta, WatchLaterResponse } from '@/types/api'
 
 export type ContentWithRelations = Content & {
   channel: Pick<Channel, 'name' | 'iconUrl'>
@@ -9,14 +9,25 @@ export type ContentWithRelations = Content & {
 }
 
 /**
- * WatchLater レコードから有効な（アクティブな）エントリを抽出する。
- * removedVia IS NULL かつ expiresAt が未設定 or 未来の場合にアクティブとみなす。
+ * アクティブな WatchLater を抽出する Prisma where 条件を生成する。
+ * DB クエリとインメモリフィルタで条件が乖離しないよう、共通の now を受け取る。
  */
+export function activeWatchLaterWhere(
+  userId: string,
+  now: Date,
+): Prisma.WatchLaterWhereInput {
+  return {
+    userId,
+    removedVia: null,
+    OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+  }
+}
+
 function findActiveWatchLater(
   watchLaters: WatchLater[],
   userId: string,
+  now: Date,
 ): WatchLater | undefined {
-  const now = new Date()
   return watchLaters.find(
     (wl) =>
       wl.userId === userId &&
@@ -25,10 +36,7 @@ function findActiveWatchLater(
   )
 }
 
-/**
- * WatchLater を API レスポンス形式に変換する。
- */
-function formatWatchLater(wl: WatchLater): WatchLaterResponse {
+export function formatWatchLater(wl: WatchLater): WatchLaterResponse {
   return {
     addedVia: wl.addedVia,
     expiresAt: wl.expiresAt?.toISOString() ?? null,
@@ -36,14 +44,12 @@ function formatWatchLater(wl: WatchLater): WatchLaterResponse {
   }
 }
 
-/**
- * Content + リレーションを OpenAPI 仕様準拠のレスポンス形式に変換する。
- */
 export function formatContent(
   content: ContentWithRelations,
   userId: string,
+  now: Date,
 ): ContentResponse {
-  const activeWatchLater = findActiveWatchLater(content.watchLaters, userId)
+  const activeWatchLater = findActiveWatchLater(content.watchLaters, userId, now)
 
   return {
     id: content.id,
@@ -69,20 +75,15 @@ export function formatContent(
   }
 }
 
-/**
- * コンテンツ配列から nextCursor を生成する。
- * N+1 パターン: limit+1 件取得し、超過分があれば hasNext=true。
- */
 export function buildPaginationMeta(
   contents: ContentWithRelations[],
   limit: number,
-): { hasNext: boolean; nextCursor: string | null } {
+): PaginationMeta {
   const hasNext = contents.length > limit
   if (!hasNext) {
     return { hasNext: false, nextCursor: null }
   }
 
-  // The last item within the limit is the cursor reference
   const lastItem = contents[limit - 1]
   const nextCursor = encodeCursor(lastItem.contentAt.toISOString(), lastItem.id)
 

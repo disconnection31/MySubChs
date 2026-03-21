@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 
+import { formatWatchLater } from '@/app/api/contents/helpers'
 import { getAuthenticatedSession } from '@/lib/api-helpers'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
@@ -21,7 +22,6 @@ export async function PUT(_request: NextRequest, context: RouteContext) {
   try {
     const { contentId } = await context.params
 
-    // Content existence and ownership check via Content -> Channel -> userId
     const content = await prisma.content.findUnique({
       where: { id: contentId },
       include: {
@@ -35,7 +35,6 @@ export async function PUT(_request: NextRequest, context: RouteContext) {
       return errorResponse(ErrorCode.CONTENT_NOT_FOUND, 'コンテンツが見つかりません', 404)
     }
 
-    // Upsert WatchLater record
     const watchLater = await prisma.watchLater.upsert({
       where: {
         userId_contentId: {
@@ -58,11 +57,7 @@ export async function PUT(_request: NextRequest, context: RouteContext) {
       },
     })
 
-    return Response.json({
-      addedVia: watchLater.addedVia,
-      expiresAt: watchLater.expiresAt?.toISOString() ?? null,
-      addedAt: watchLater.addedAt.toISOString(),
-    })
+    return Response.json(formatWatchLater(watchLater))
   } catch (error) {
     console.error('[watch-later] PUT error:', error)
     return errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, 'サーバー内部エラーが発生しました', 500)
@@ -71,7 +66,7 @@ export async function PUT(_request: NextRequest, context: RouteContext) {
 
 /**
  * DELETE /api/watch-later/{contentId}
- * 「後で見る」を OFF にする（手動削除 = ソフト削除）
+ * 「後で見る」を OFF にする（ソフト削除）
  */
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const auth = await getAuthenticatedSession()
@@ -82,7 +77,6 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { contentId } = await context.params
 
-    // Find active WatchLater record (removedVia IS NULL)
     const watchLater = await prisma.watchLater.findUnique({
       where: {
         userId_contentId: {
@@ -100,7 +94,6 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       )
     }
 
-    // Soft-delete: set removedVia to 'MANUAL'
     await prisma.watchLater.update({
       where: {
         userId_contentId: {
