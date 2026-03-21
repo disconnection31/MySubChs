@@ -1,11 +1,18 @@
 'use client'
 
-import { useCategorySettings } from '@/hooks/useCategorySettings'
+import { useCategorySettings, type SettingField } from '@/hooks/useCategorySettings'
 import type { NotificationSettingResponse } from '@/types/api'
 
 import { NotificationSettings } from './NotificationSettings'
 import { PollingSettings } from './PollingSettings'
 import { WatchLaterSettings } from './WatchLaterSettings'
+
+export type SettingChangeHandler = (field: SettingField, value: boolean | number | null) => void
+
+const QUOTA_AFFECTING_FIELDS = new Set<SettingField>([
+  'autoPollingEnabled',
+  'pollingIntervalMinutes',
+])
 
 type CategorySettingsProps = {
   categoryId: string
@@ -21,12 +28,14 @@ export function CategorySettings({
   const mutation = useCategorySettings()
   const disabled = mutation.isPending
 
-  const handleSettingChange = (
-    field: string,
-    value: boolean | number | null,
-    affectsQuota: boolean,
-  ) => {
-    mutation.mutate({ categoryId, field, value, affectsQuota })
+  const handleSettingChange = (field: SettingField, value: boolean | number | null) => {
+    if (settings[field] === value) return
+    mutation.mutate({
+      categoryId,
+      field,
+      value,
+      affectsQuota: QUOTA_AFFECTING_FIELDS.has(field),
+    })
   }
 
   // Use categoryId as prefix for unique HTML IDs when multiple categories are expanded

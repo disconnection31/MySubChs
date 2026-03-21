@@ -9,14 +9,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { VALID_POLLING_INTERVALS } from '@/lib/config'
 import type { NotificationSettingResponse } from '@/types/api'
+
+import type { SettingChangeHandler } from './CategorySettings'
 
 type PollingSettingsProps = {
   idPrefix: string
   settings: NotificationSettingResponse
   globalPollingInterval: number
   disabled: boolean
-  onSettingChange: (field: string, value: boolean | number | null, affectsQuota: boolean) => void
+  onSettingChange: SettingChangeHandler
 }
 
 const USE_GLOBAL_VALUE = 'global'
@@ -36,7 +39,9 @@ export function PollingSettings({
   onSettingChange,
 }: PollingSettingsProps) {
   const intervalValue =
-    settings.pollingIntervalMinutes === null ? USE_GLOBAL_VALUE : String(settings.pollingIntervalMinutes)
+    settings.pollingIntervalMinutes === null
+      ? USE_GLOBAL_VALUE
+      : String(settings.pollingIntervalMinutes)
 
   return (
     <div className="space-y-4">
@@ -49,9 +54,7 @@ export function PollingSettings({
         <Switch
           id={`${idPrefix}-auto-polling`}
           checked={settings.autoPollingEnabled}
-          onCheckedChange={(checked) =>
-            onSettingChange('autoPollingEnabled', checked, true)
-          }
+          onCheckedChange={(checked) => onSettingChange('autoPollingEnabled', checked)}
           disabled={disabled}
         />
       </div>
@@ -64,7 +67,7 @@ export function PollingSettings({
           value={intervalValue}
           onValueChange={(val) => {
             const numValue = val === USE_GLOBAL_VALUE ? null : Number(val)
-            onSettingChange('pollingIntervalMinutes', numValue, true)
+            onSettingChange('pollingIntervalMinutes', numValue)
           }}
           disabled={disabled || !settings.autoPollingEnabled}
         >
@@ -75,10 +78,11 @@ export function PollingSettings({
             <SelectItem value={USE_GLOBAL_VALUE}>
               グローバル設定を使用（現在: {formatInterval(globalPollingInterval)}）
             </SelectItem>
-            <SelectItem value="5">5分</SelectItem>
-            <SelectItem value="10">10分</SelectItem>
-            <SelectItem value="30">30分</SelectItem>
-            <SelectItem value="60">1時間</SelectItem>
+            {VALID_POLLING_INTERVALS.map((min) => (
+              <SelectItem key={min} value={String(min)}>
+                {formatInterval(min)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

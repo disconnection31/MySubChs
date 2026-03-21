@@ -4,9 +4,11 @@ import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api-client'
 import type { CategoryResponse, NotificationSettingResponse } from '@/types/api'
 
+export type SettingField = keyof NotificationSettingResponse
+
 type UpdateSettingParams = {
   categoryId: string
-  field: string
+  field: SettingField
   value: boolean | number | null
   affectsQuota: boolean
 }

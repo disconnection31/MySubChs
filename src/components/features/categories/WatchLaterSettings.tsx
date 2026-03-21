@@ -9,16 +9,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { VALID_AUTO_EXPIRE_HOURS } from '@/lib/config'
 import type { NotificationSettingResponse } from '@/types/api'
+
+import type { SettingChangeHandler } from './CategorySettings'
 
 type WatchLaterSettingsProps = {
   idPrefix: string
   settings: NotificationSettingResponse
   disabled: boolean
-  onSettingChange: (field: string, value: boolean | number | null, affectsQuota: boolean) => void
+  onSettingChange: SettingChangeHandler
 }
 
 const NO_EXPIRE_VALUE = 'none'
+
+const EXPIRE_LABELS: Record<number, string> = {
+  24: '1日',
+  72: '3日',
+  168: '1週間',
+  336: '2週間',
+}
 
 export function WatchLaterSettings({
   idPrefix,
@@ -26,7 +36,8 @@ export function WatchLaterSettings({
   disabled,
   onSettingChange,
 }: WatchLaterSettingsProps) {
-  const expireValue = settings.autoExpireHours === null ? NO_EXPIRE_VALUE : String(settings.autoExpireHours)
+  const expireValue =
+    settings.autoExpireHours === null ? NO_EXPIRE_VALUE : String(settings.autoExpireHours)
 
   return (
     <div className="space-y-4">
@@ -39,9 +50,7 @@ export function WatchLaterSettings({
         <Switch
           id={`${idPrefix}-watch-later-default`}
           checked={settings.watchLaterDefault}
-          onCheckedChange={(checked) =>
-            onSettingChange('watchLaterDefault', checked, false)
-          }
+          onCheckedChange={(checked) => onSettingChange('watchLaterDefault', checked)}
           disabled={disabled}
         />
       </div>
@@ -55,7 +64,7 @@ export function WatchLaterSettings({
             value={expireValue}
             onValueChange={(val) => {
               const numValue = val === NO_EXPIRE_VALUE ? null : Number(val)
-              onSettingChange('autoExpireHours', numValue, false)
+              onSettingChange('autoExpireHours', numValue)
             }}
             disabled={disabled}
           >
@@ -63,10 +72,11 @@ export function WatchLaterSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="24">1日</SelectItem>
-              <SelectItem value="72">3日</SelectItem>
-              <SelectItem value="168">1週間</SelectItem>
-              <SelectItem value="336">2週間</SelectItem>
+              {VALID_AUTO_EXPIRE_HOURS.map((hours) => (
+                <SelectItem key={hours} value={String(hours)}>
+                  {EXPIRE_LABELS[hours]}
+                </SelectItem>
+              ))}
               <SelectItem value={NO_EXPIRE_VALUE}>失効なし</SelectItem>
             </SelectContent>
           </Select>
