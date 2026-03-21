@@ -21,12 +21,11 @@ import { ChannelDeactivateDialog } from './ChannelDeactivateDialog'
 type ChannelRowProps = {
   channel: ChannelResponse
   categories: CategoryResponse[]
-  isActive: boolean
 }
 
 const UNCATEGORIZED_VALUE = '__uncategorized__'
 
-export function ChannelRow({ channel, categories, isActive }: ChannelRowProps) {
+export function ChannelRow({ channel, categories }: ChannelRowProps) {
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
   const updateChannel = useUpdateChannel()
 
@@ -41,9 +40,7 @@ export function ChannelRow({ channel, categories, isActive }: ChannelRowProps) {
   return (
     <>
       <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:gap-3">
-        {/* Row 1 (SP) / Left section (PC): Icon + Name */}
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          {/* Channel icon */}
           {channel.iconUrl ? (
             <Image
               src={channel.iconUrl}
@@ -58,12 +55,10 @@ export function ChannelRow({ channel, categories, isActive }: ChannelRowProps) {
             </div>
           )}
 
-          {/* Channel name */}
           <span className="truncate text-sm font-medium">{channel.name}</span>
         </div>
 
-        {/* Row 2 (SP) / Right section (PC): Category select + Deactivate button */}
-        {isActive ? (
+        {channel.isActive ? (
           <div className="flex items-center gap-2 md:shrink-0">
             <Select
               value={channel.categoryId ?? UNCATEGORIZED_VALUE}
@@ -75,14 +70,11 @@ export function ChannelRow({ channel, categories, isActive }: ChannelRowProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={UNCATEGORIZED_VALUE}>未分類</SelectItem>
-                {categories
-                  .slice()
-                  .sort((a, b) => a.sortOrder - b.sortOrder)
-                  .map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

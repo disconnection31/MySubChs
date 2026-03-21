@@ -8,15 +8,9 @@ type ChannelGroupProps = {
   categoryName: string
   channels: ChannelResponse[]
   categories: CategoryResponse[]
-  isActive: boolean
 }
 
-export function ChannelGroup({
-  categoryName,
-  channels,
-  categories,
-  isActive,
-}: ChannelGroupProps) {
+export function ChannelGroup({ categoryName, channels, categories }: ChannelGroupProps) {
   return (
     <div>
       <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
@@ -24,12 +18,7 @@ export function ChannelGroup({
       </h2>
       <div className="space-y-2">
         {channels.map((channel) => (
-          <ChannelRow
-            key={channel.id}
-            channel={channel}
-            categories={categories}
-            isActive={isActive}
-          />
+          <ChannelRow key={channel.id} channel={channel} categories={categories} />
         ))}
       </div>
     </div>

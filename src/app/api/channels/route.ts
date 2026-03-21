@@ -17,10 +17,8 @@ export async function GET(request: NextRequest) {
     const isActiveParam = searchParams.get('isActive')
     const categoryIdParam = searchParams.get('categoryId')
 
-    // Default to true if not specified
-    const isActive = isActiveParam === 'false' ? false : true
+    const isActive = isActiveParam !== 'false'
 
-    // Build where clause
     const where: {
       userId: string
       isActive: boolean

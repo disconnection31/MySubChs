@@ -7,18 +7,17 @@ import { ChannelGroup } from './ChannelGroup'
 type ChannelGroupListProps = {
   channels: ChannelResponse[]
   categories: CategoryResponse[]
-  isActive: boolean
 }
 
 type GroupedChannels = {
   categoryId: string | null
   categoryName: string
-  sortOrder: number
   channels: ChannelResponse[]
 }
 
-export function ChannelGroupList({ channels, categories, isActive }: ChannelGroupListProps) {
-  // Group channels by categoryId
+export function ChannelGroupList({ channels, categories }: ChannelGroupListProps) {
+  const sortedCategories = categories.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+
   const channelsByCategory = new Map<string | null, ChannelResponse[]>()
   for (const channel of channels) {
     const key = channel.categoryId
@@ -27,32 +26,24 @@ export function ChannelGroupList({ channels, categories, isActive }: ChannelGrou
     channelsByCategory.set(key, existing)
   }
 
-  // Build groups with category info
   const groups: GroupedChannels[] = []
 
-  // Add categorized groups in sortOrder
-  for (const category of categories) {
+  for (const category of sortedCategories) {
     const categoryChannels = channelsByCategory.get(category.id)
     if (categoryChannels && categoryChannels.length > 0) {
       groups.push({
         categoryId: category.id,
         categoryName: category.name,
-        sortOrder: category.sortOrder,
         channels: categoryChannels.sort((a, b) => a.name.localeCompare(b.name)),
       })
     }
   }
 
-  // Sort by sortOrder
-  groups.sort((a, b) => a.sortOrder - b.sortOrder)
-
-  // Add uncategorized group at the end
   const uncategorized = channelsByCategory.get(null)
   if (uncategorized && uncategorized.length > 0) {
     groups.push({
       categoryId: null,
       categoryName: '未分類',
-      sortOrder: Infinity,
       channels: uncategorized.sort((a, b) => a.name.localeCompare(b.name)),
     })
   }
@@ -64,8 +55,7 @@ export function ChannelGroupList({ channels, categories, isActive }: ChannelGrou
           key={group.categoryId ?? 'uncategorized'}
           categoryName={group.categoryName}
           channels={group.channels}
-          categories={categories}
-          isActive={isActive}
+          categories={sortedCategories}
         />
       ))}
     </div>

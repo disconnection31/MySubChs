@@ -20,7 +20,7 @@ export function ChannelsPage() {
   const pathname = usePathname()
 
   const filterParam = searchParams.get('filter')
-  const isActive = filterParam === 'inactive' ? false : true
+  const isActive = filterParam !== 'inactive'
 
   const setIsActive = useCallback(
     (active: boolean) => {
@@ -47,10 +47,8 @@ export function ChannelsPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-4">
-      {/* Page header */}
       <h1 className="mb-4 text-2xl font-bold">チャンネル管理</h1>
 
-      {/* Sync info banner */}
       <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
@@ -61,12 +59,10 @@ export function ChannelsPage() {
         </p>
       </div>
 
-      {/* Filter */}
       <div className="mb-4">
         <ChannelFilter isActive={isActive} onChange={setIsActive} />
       </div>
 
-      {/* Content area */}
       {isLoading ? (
         <ChannelSkeleton />
       ) : isChannelsError ? (
@@ -81,11 +77,7 @@ export function ChannelsPage() {
           </Button>
         </div>
       ) : hasChannels ? (
-        <ChannelGroupList
-          channels={channels}
-          categories={categories ?? []}
-          isActive={isActive}
-        />
+        <ChannelGroupList channels={channels} categories={categories ?? []} />
       ) : (
         <ChannelEmptyState isActive={isActive} />
       )}

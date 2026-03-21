@@ -27,7 +27,6 @@ export function ChannelDeactivateDialog({
   onOpenChange,
 }: ChannelDeactivateDialogProps) {
   const updateChannel = useUpdateChannel()
-  const isPending = updateChannel.isPending
 
   const handleDeactivate = async () => {
     try {
@@ -59,11 +58,11 @@ export function ChannelDeactivateDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={updateChannel.isPending}>
             キャンセル
           </Button>
-          <Button variant="destructive" onClick={handleDeactivate} disabled={isPending}>
-            {isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+          <Button variant="destructive" onClick={handleDeactivate} disabled={updateChannel.isPending}>
+            {updateChannel.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
             解除する
           </Button>
         </DialogFooter>
