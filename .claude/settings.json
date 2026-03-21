@@ -20,7 +20,8 @@
       "deny": [
         "Bash(git clean -fd*)",
         "Bash(git clean -fxd*)",
-        "Bash(git push --force*)",
+        "Bash(git push --force *)",
+        "Bash(git push --force)",
         "Bash(git push -f *)",
         "Bash(git push -f)",
         "Bash(git push * main*)",
