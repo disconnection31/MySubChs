@@ -1,4 +1,5 @@
 import IORedis from 'ioredis'
+import type { ConnectionOptions } from 'bullmq'
 
 /**
  * BullMQ / Redis 共通の IORedis クライアント。
@@ -7,3 +8,6 @@ import IORedis from 'ioredis'
 export const redis = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null, // BullMQ が要求する設定
 })
+
+/** BullMQ の connection オプション用にキャスト済みのインスタンス */
+export const bullmqConnection = redis as unknown as ConnectionOptions
