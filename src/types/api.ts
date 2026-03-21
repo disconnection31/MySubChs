@@ -54,6 +54,21 @@ export type CategoryResponse = {
   settings: NotificationSettingResponse | null
 }
 
+// --- Channel ---
+
+export type ChannelResponse = {
+  id: string
+  platform: string
+  platformChannelId: string
+  name: string
+  iconUrl: string | null
+  categoryId: string | null
+  isActive: boolean
+  lastPolledAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // --- UserSettings (GET /api/settings) ---
 
 export type UserSettingsResponse = {
