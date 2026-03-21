@@ -45,3 +45,7 @@ export const VALID_CONTENT_RETENTION_DAYS = [30, 60, 90, 180, 365] as const
 
 // videos.list の1ポーリングサイクルあたりの概算コスト（youtube-polling.md §11）
 export const ESTIMATED_QUOTA_OVERHEAD_PER_POLL = 2
+
+// コンテンツ一覧ページネーション
+export const DEFAULT_CONTENTS_LIMIT = 20
+export const MAX_CONTENTS_LIMIT = 50
