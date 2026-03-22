@@ -49,3 +49,11 @@ export const ESTIMATED_QUOTA_OVERHEAD_PER_POLL = 2
 // コンテンツ一覧ページネーション
 export const DEFAULT_CONTENTS_LIMIT = 20
 export const MAX_CONTENTS_LIMIT = 50
+
+// Redis キー名
+export const REDIS_KEY_QUOTA_EXHAUSTED = 'quota:exhausted'
+export const REDIS_KEY_POLLING_LOCK_PREFIX = 'polling:lock:'
+export const REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX = 'manual-poll:cooldown:'
+
+// YouTube コンテンツ URL テンプレート
+export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
