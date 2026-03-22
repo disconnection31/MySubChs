@@ -6,8 +6,7 @@ import {
   REDIS_KEY_QUOTA_EXHAUSTED,
   YOUTUBE_CONTENT_URL_TEMPLATE,
 } from '@/lib/config'
-import { youTubeAdapter } from '@/lib/platforms/youtube'
-import { YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
+import { youTubeAdapter, YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 import type { VideoDetail } from '@/lib/platforms/base'
 
 // ---- Types ----
@@ -220,20 +219,27 @@ export async function executePolling(
       const metas = await youTubeAdapter.getChannelMetas(platformIds, accessToken)
       const metaMap = new Map(metas.map((m) => [m.platformChannelId, m]))
 
-      for (const ch of channelsMissingPlaylistId) {
+      const channelsToUpdate = channelsMissingPlaylistId.filter((ch) => {
         const meta = metaMap.get(ch.platformChannelId)
         if (meta) {
-          await prisma.channel.update({
-            where: { id: ch.id },
-            data: { uploadsPlaylistId: meta.uploadsPlaylistId },
-          })
-          // Update in-memory reference
           ch.uploadsPlaylistId = meta.uploadsPlaylistId
-        } else {
-          console.warn(
-            `[polling] Could not fetch uploadsPlaylistId for channel ${ch.platformChannelId}`,
-          )
+          return true
         }
+        console.warn(
+          `[polling] Could not fetch uploadsPlaylistId for channel ${ch.platformChannelId}`,
+        )
+        return false
+      })
+
+      if (channelsToUpdate.length > 0) {
+        await prisma.$transaction(
+          channelsToUpdate.map((ch) =>
+            prisma.channel.update({
+              where: { id: ch.id },
+              data: { uploadsPlaylistId: ch.uploadsPlaylistId! },
+            }),
+          ),
+        )
       }
     } catch (err) {
       if (err instanceof YouTubeQuotaExceededError) {
@@ -379,13 +385,13 @@ export async function executePolling(
     }
   })
 
+  // Collect all DB operations for batched transaction
+  const dbOperations: ReturnType<typeof prisma.content.upsert>[] = []
+
   // Process new content
   for (const platformContentId of newContentIds) {
     const detail = videoDetailMap.get(platformContentId)
-    if (!detail) {
-      // ID not in videos.list response → deleted content, skip INSERT
-      continue
-    }
+    if (!detail) continue
 
     const channelId = contentToChannelMap.get(platformContentId)
     if (!channelId) continue
@@ -393,37 +399,39 @@ export async function executePolling(
     const fields = determineNewContentFields(detail, channelId, now)
     if (!fields) continue
 
-    await prisma.content.upsert({
-      where: {
-        platform_platformContentId: {
+    dbOperations.push(
+      prisma.content.upsert({
+        where: {
+          platform_platformContentId: {
+            platform: 'youtube',
+            platformContentId,
+          },
+        },
+        create: {
+          channelId,
           platform: 'youtube',
           platformContentId,
+          title: fields.title,
+          type: fields.type,
+          status: fields.status,
+          publishedAt: fields.publishedAt,
+          scheduledStartAt: fields.scheduledStartAt,
+          actualStartAt: fields.actualStartAt,
+          actualEndAt: fields.actualEndAt,
+          contentAt: fields.contentAt,
+          url: fields.url!,
         },
-      },
-      create: {
-        channelId,
-        platform: 'youtube',
-        platformContentId,
-        title: fields.title,
-        type: fields.type,
-        status: fields.status,
-        publishedAt: fields.publishedAt,
-        scheduledStartAt: fields.scheduledStartAt,
-        actualStartAt: fields.actualStartAt,
-        actualEndAt: fields.actualEndAt,
-        contentAt: fields.contentAt,
-        url: fields.url!,
-      },
-      update: {
-        title: fields.title,
-        status: fields.status,
-        publishedAt: fields.publishedAt,
-        scheduledStartAt: fields.scheduledStartAt,
-        actualStartAt: fields.actualStartAt,
-        actualEndAt: fields.actualEndAt,
-        contentAt: fields.contentAt,
-      },
-    })
+        update: {
+          title: fields.title,
+          status: fields.status,
+          publishedAt: fields.publishedAt,
+          scheduledStartAt: fields.scheduledStartAt,
+          actualStartAt: fields.actualStartAt,
+          actualEndAt: fields.actualEndAt,
+          contentAt: fields.contentAt,
+        },
+      }),
+    )
   }
 
   // Process existing LIVE content
@@ -432,10 +440,12 @@ export async function executePolling(
     const updateFields = determineExistingLiveUpdate(detail, existing)
     if (!updateFields) continue
 
-    await prisma.content.update({
-      where: { id: existing.id },
-      data: updateFields,
-    })
+    dbOperations.push(
+      prisma.content.update({
+        where: { id: existing.id },
+        data: updateFields,
+      }) as ReturnType<typeof prisma.content.upsert>,
+    )
   }
 
   // Process existing UPCOMING (scheduledStartAt <= now) content
@@ -444,18 +454,28 @@ export async function executePolling(
     const updateFields = determineExistingUpcomingUpdate(detail, existing)
     if (!updateFields) continue
 
-    await prisma.content.update({
-      where: { id: existing.id },
-      data: updateFields,
-    })
+    dbOperations.push(
+      prisma.content.update({
+        where: { id: existing.id },
+        data: updateFields,
+      }) as ReturnType<typeof prisma.content.upsert>,
+    )
   }
 
-  // Update lastPolledAt for successfully polled channels (§15: only after UPSERT completes)
-  for (const channelId of successfullyPolledChannelIds) {
-    await prisma.channel.update({
-      where: { id: channelId },
-      data: { lastPolledAt: new Date() },
-    })
+  // Execute all content operations + lastPolledAt updates in a single transaction
+  const polledAtNow = new Date()
+  if (dbOperations.length > 0 || successfullyPolledChannelIds.length > 0) {
+    await prisma.$transaction([
+      ...dbOperations,
+      ...(successfullyPolledChannelIds.length > 0
+        ? [
+            prisma.channel.updateMany({
+              where: { id: { in: successfullyPolledChannelIds } },
+              data: { lastPolledAt: polledAtNow },
+            }),
+          ]
+        : []),
+    ])
   }
 
   // Step 7: WatchLater auto-assignment (no-op hook point)
@@ -478,5 +498,4 @@ export async function setQuotaExhausted(): Promise<void> {
     `[polling] YouTube API quota exhausted. Polling suspended until UTC midnight. (${expiresAt})`,
   )
 }
-
 
