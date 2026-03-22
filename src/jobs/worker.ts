@@ -1,10 +1,16 @@
 import { Worker, Job } from 'bullmq'
 
-import { bullmqConnection } from '@/lib/redis'
+import { bullmqConnection, redis } from '@/lib/redis'
 import { prisma } from '@/lib/db'
 import { ensureValidToken } from '@/lib/tokenRefresh'
-import { DEFAULT_POLLING_INTERVAL_MINUTES } from '@/lib/config'
+import {
+  DEFAULT_POLLING_INTERVAL_MINUTES,
+  REDIS_KEY_QUOTA_EXHAUSTED,
+  REDIS_KEY_POLLING_LOCK_PREFIX,
+} from '@/lib/config'
 import { queue } from '@/lib/queue'
+import { YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
+import { executePolling, setQuotaExhausted } from './polling'
 
 // ---- Types ----
 
@@ -135,12 +141,48 @@ async function processJob(job: Job<JobData>): Promise<void> {
     // トークンリフレッシュ: ユーザーIDを取得
     const category = await prisma.category.findUnique({
       where: { id: categoryId },
-      select: { userId: true },
+      select: {
+        userId: true,
+        notificationSetting: {
+          select: { pollingIntervalMinutes: true },
+        },
+        user: {
+          select: {
+            userSetting: {
+              select: { pollingIntervalMinutes: true },
+            },
+          },
+        },
+      },
     })
 
     if (!category) {
       console.warn(`[worker] Category not found: ${categoryId}`)
       return
+    }
+
+    // §13: クォータ枯渇チェック
+    const quotaExhausted = await redis.get(REDIS_KEY_QUOTA_EXHAUSTED)
+    if (quotaExhausted) {
+      console.info(`[worker] Quota exhausted, skipping poll for ${jobName}`)
+      return
+    }
+
+    const isManual = jobName.startsWith('manual-poll:')
+
+    // §14: Redis ロックによる重複実行防止（auto-poll のみ）
+    if (!isManual) {
+      const effectiveInterval =
+        category.notificationSetting?.pollingIntervalMinutes ??
+        category.user?.userSetting?.pollingIntervalMinutes ??
+        DEFAULT_POLLING_INTERVAL_MINUTES
+      const intervalMs = effectiveInterval * 60 * 1000
+      const lockKey = `${REDIS_KEY_POLLING_LOCK_PREFIX}${categoryId}`
+      const lockResult = await redis.set(lockKey, '1', 'PX', intervalMs, 'NX')
+      if (lockResult !== 'OK') {
+        console.info(`[worker] Polling lock not acquired, skipping ${jobName}`)
+        return
+      }
     }
 
     // トークン確認・リフレッシュ
@@ -160,10 +202,18 @@ async function processJob(job: Job<JobData>): Promise<void> {
       throw new Error(`Token refresh failed: ${tokenResult.error}`)
     }
 
-    // ポーリング処理は T21 で実装
-    console.info(
-      `[worker] Job ${jobName} processed (polling logic pending T21). accessToken available.`,
-    )
+    // ポーリング実行
+    try {
+      await executePolling(categoryId, tokenResult.accessToken, isManual)
+      console.info(`[worker] Job ${jobName} polling completed successfully`)
+    } catch (err) {
+      if (err instanceof YouTubeQuotaExceededError) {
+        // §13: クォータ枯渇 → Redis フラグセット、正常完了として終了
+        await setQuotaExhausted()
+        return
+      }
+      throw err
+    }
     return
   }
 
