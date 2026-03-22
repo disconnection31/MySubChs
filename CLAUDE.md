@@ -96,6 +96,14 @@ Required when implementing:
 
 Exempt: Worker entry points, UI components, simple pass-through routes.
 
+### API Route Test Requirements
+
+Each API route file (`route.ts`) must have a corresponding `route.test.ts`. Route tests must cover at minimum:
+- **認証エラー**: 未認証時に401が返ること
+- **バリデーションエラー**: 不正な入力で適切なエラーが返ること
+- **正常系**: 主要な成功パスの動作確認
+- **404**: 存在しないリソースへのアクセス（該当する場合）
+
 ## Editor Conventions
 
 - **Line endings**: All files use LF. Enforced via `.gitattributes` (`* text=auto eol=lf`) and `.editorconfig` (`end_of_line = lf`).
@@ -113,6 +121,7 @@ All specs are in Japanese. The `docs/` directory is the Single Source of Truth. 
 6. `docs/ui/*.md` — UI specifications per screen
 
 Other references:
+- `docs/coding-patterns.md` - Established implementation patterns (API route structure, formatters, test setup, error handling)
 - `docs/integrations/youtube-auth.md` - Google OAuth flow, channel sync, Worker token management
 - `docs/integrations/youtube-polling.md` - BullMQ polling design, quota management, error handling
 - `docs/infrastructure.md` - Docker Compose, environment variables, AWS migration
