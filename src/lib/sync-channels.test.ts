@@ -15,7 +15,6 @@ vi.mock('@/lib/db', async () => {
   return { default: mock, prisma: mock }
 })
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- access the module-level mock
 async function getPrismaMock(): Promise<MockPrisma> {
   const mod = await vi.importMock<{ prisma: MockPrisma }>('@/lib/db')
   return mod.prisma

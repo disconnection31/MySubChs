@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server'
+
 import { getAuthenticatedSession } from '@/lib/api-helpers'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
@@ -28,7 +30,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       )
     }
 
-    return new Response(null, { status: 204 })
+    return new NextResponse(null, { status: 204 })
   } catch (error) {
     console.error('[notifications/subscriptions] DELETE error:', error)
     return errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, 'サーバー内部エラーが発生しました', 500)

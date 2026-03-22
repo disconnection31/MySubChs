@@ -1,15 +1,6 @@
-export type ApiErrorCode =
-  | 'UNAUTHORIZED'
-  | 'FORBIDDEN'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'UNPROCESSABLE_ENTITY'
-  | 'INTERNAL_ERROR'
-  | 'BAD_REQUEST'
-
 export type ApiErrorBody = {
   error: {
-    code: ApiErrorCode
+    code: string
     message: string
   }
 }
@@ -17,7 +8,7 @@ export type ApiErrorBody = {
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    public readonly code: ApiErrorCode,
+    public readonly code: string,
     message: string,
   ) {
     super(message)

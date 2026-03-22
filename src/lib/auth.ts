@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
 
         if (existingUserSetting === null) {
           // T28 で BullMQ ジョブエンキューを実装するため、現時点はログ出力のみ
-          console.log(`[auth] 初回ログイン: userId=${user.id}`)
+          console.info(`[auth] 初回ログイン: userId=${user.id}`)
         }
       }
 

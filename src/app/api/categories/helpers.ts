@@ -1,5 +1,7 @@
 import type { Category, NotificationSetting } from '@prisma/client'
 
+import type { CategoryResponse, NotificationSettingResponse } from '@/types/api'
+
 export type CategoryWithNotificationSetting = Category & {
   notificationSetting: NotificationSetting | null
 }
@@ -9,7 +11,7 @@ export type CategoryWithNotificationSetting = Category & {
  * 内部フィールド (id, userId, categoryId, createdAt, updatedAt) を除外し、
  * 公開フィールドのみを返す。
  */
-export function formatNotificationSetting(setting: NotificationSetting) {
+export function formatNotificationSetting(setting: NotificationSetting): NotificationSettingResponse {
   return {
     notifyOnNewVideo: setting.notifyOnNewVideo,
     notifyOnLiveStart: setting.notifyOnLiveStart,
@@ -25,11 +27,15 @@ export function formatNotificationSetting(setting: NotificationSetting) {
  * Category + NotificationSetting を openapi.yaml 準拠のレスポンス形式に変換する。
  * notificationSetting -> settings にリネームし、内部フィールドを除外する。
  */
-export function formatCategory(category: CategoryWithNotificationSetting) {
-  const { notificationSetting, userId, ...rest } = category
-
+export function formatCategory(category: CategoryWithNotificationSetting): CategoryResponse {
   return {
-    ...rest,
-    settings: notificationSetting ? formatNotificationSetting(notificationSetting) : null,
+    id: category.id,
+    name: category.name,
+    sortOrder: category.sortOrder,
+    createdAt: category.createdAt.toISOString(),
+    updatedAt: category.updatedAt.toISOString(),
+    settings: category.notificationSetting
+      ? formatNotificationSetting(category.notificationSetting)
+      : null,
   }
 }

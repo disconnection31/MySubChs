@@ -1,5 +1,5 @@
 import { type Prisma } from '@prisma/client'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 import { decodeCursor, getAuthenticatedSession } from '@/lib/api-helpers'
 import { DEFAULT_CONTENTS_LIMIT, MAX_CONTENTS_LIMIT } from '@/lib/config'
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (channelIds.length === 0) {
-      return Response.json({
+      return NextResponse.json({
         data: [],
         meta: { hasNext: false, nextCursor: null },
       })
@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
     const meta = buildPaginationMeta(contents, limit)
     const data = contents.slice(0, limit).map((c) => formatContent(c, auth.userId, now))
 
-    return Response.json({ data, meta })
+    return NextResponse.json({ data, meta })
   } catch (error) {
     console.error('[contents] GET error:', error)
     return errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, 'サーバー内部エラーが発生しました', 500)

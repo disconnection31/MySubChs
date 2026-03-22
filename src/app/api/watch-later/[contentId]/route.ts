@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 import { formatWatchLater } from '@/app/api/contents/helpers'
 import { getAuthenticatedSession } from '@/lib/api-helpers'
@@ -57,7 +57,7 @@ export async function PUT(_request: NextRequest, context: RouteContext) {
       },
     })
 
-    return Response.json(formatWatchLater(watchLater))
+    return NextResponse.json(formatWatchLater(watchLater))
   } catch (error) {
     console.error('[watch-later] PUT error:', error)
     return errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, 'サーバー内部エラーが発生しました', 500)
@@ -106,7 +106,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       },
     })
 
-    return new Response(null, { status: 204 })
+    return new NextResponse(null, { status: 204 })
   } catch (error) {
     console.error('[watch-later] DELETE error:', error)
     return errorResponse(ErrorCode.INTERNAL_SERVER_ERROR, 'サーバー内部エラーが発生しました', 500)
