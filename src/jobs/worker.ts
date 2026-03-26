@@ -7,10 +7,13 @@ import {
   DEFAULT_POLLING_INTERVAL_MINUTES,
   REDIS_KEY_QUOTA_EXHAUSTED,
   REDIS_KEY_POLLING_LOCK_PREFIX,
+  CONTENT_CLEANUP_CRON,
+  CONTENT_CLEANUP_JOB_NAME,
 } from '@/lib/config'
 import { queue } from '@/lib/queue'
 import { YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 import { executePolling, setQuotaExhausted } from './polling'
+import { executeContentCleanup } from './contentCleanup'
 
 // ---- Types ----
 
@@ -126,6 +129,25 @@ async function reconcileRepeatableJobs(): Promise<void> {
     console.info(`[worker] Removed orphan job ${jobName}`)
   }
 
+  // ContentCleanup: cron ベースの Repeatable Job を登録
+  // §15: attempts=3, backoff exponential 5分
+  const existingCleanupJob = existingJobs.find((j) => j.name === CONTENT_CLEANUP_JOB_NAME)
+  if (!existingCleanupJob) {
+    await queue.add(
+      CONTENT_CLEANUP_JOB_NAME,
+      {},
+      {
+        repeat: { pattern: CONTENT_CLEANUP_CRON },
+        jobId: CONTENT_CLEANUP_JOB_NAME,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5 * 60 * 1000 },
+      },
+    )
+    console.info(
+      `[worker] Registered content-cleanup job (cron: ${CONTENT_CLEANUP_CRON})`,
+    )
+  }
+
   console.info('[worker] Repeatable job reconciliation completed')
 }
 
@@ -214,6 +236,12 @@ async function processJob(job: Job<JobData>): Promise<void> {
       }
       throw err
     }
+    return
+  }
+
+  // content-cleanup ジョブを処理（DB操作のみ、YouTube API不要）
+  if (jobName === CONTENT_CLEANUP_JOB_NAME) {
+    await executeContentCleanup()
     return
   }
 
