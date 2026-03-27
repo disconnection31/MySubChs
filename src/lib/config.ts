@@ -58,6 +58,9 @@ export const CONTENT_CLEANUP_JOB_NAME = 'content-cleanup'
 export const WATCHLATER_CLEANUP_CRON = '0 19 * * *' // JST 04:00 = UTC 19:00
 export const WATCHLATER_CLEANUP_JOB_NAME = 'watchlater-cleanup'
 
+// 初回セットアップジョブ
+export const SETUP_JOB_NAME = 'setup'
+
 // BullMQ ジョブ名プレフィックス
 export const AUTO_POLL_JOB_PREFIX = 'auto-poll:'
 

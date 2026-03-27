@@ -11,11 +11,13 @@ import {
   CONTENT_CLEANUP_JOB_NAME,
   WATCHLATER_CLEANUP_CRON,
   WATCHLATER_CLEANUP_JOB_NAME,
+  SETUP_JOB_NAME,
 } from '@/lib/config'
 import { queue } from '@/lib/queue'
 import { YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 import { executePolling, setQuotaExhausted } from './polling'
 import { executeContentCleanup } from './contentCleanup'
+import { executeSetupJob } from './setup'
 import { executeWatchLaterCleanup } from './watchLaterCleanup'
 
 // ---- Types ----
@@ -28,7 +30,11 @@ type ManualPollJobData = {
   categoryId: string
 }
 
-type JobData = AutoPollJobData | ManualPollJobData
+type SetupJobData = {
+  userId: string
+}
+
+type JobData = AutoPollJobData | ManualPollJobData | SetupJobData
 
 // ---- Self-healing (§4): Reconcile BullMQ repeatable jobs with DB state ----
 
@@ -270,6 +276,12 @@ async function processJob(job: Job<JobData>): Promise<void> {
   // watchlater-cleanup ジョブを処理（DB操作のみ、YouTube API不要）
   if (jobName === WATCHLATER_CLEANUP_JOB_NAME) {
     await executeWatchLaterCleanup()
+    return
+  }
+
+  // setup ジョブを処理（初回ログイン時のチャンネル同期）
+  if (jobName === SETUP_JOB_NAME) {
+    await executeSetupJob((job.data as SetupJobData).userId)
     return
   }
 
