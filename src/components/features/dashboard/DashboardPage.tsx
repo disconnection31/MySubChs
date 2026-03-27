@@ -4,12 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
-import { useQuery } from '@tanstack/react-query'
-
 import { useCategories } from '@/hooks/useCategories'
-import { apiFetch } from '@/lib/api-client'
+import { useChannels } from '@/hooks/useChannels'
 import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
-import type { ChannelResponse } from '@/types/api'
 
 import { ContentHeader } from './ContentHeader'
 import { ContentList } from './ContentList'
@@ -22,23 +19,15 @@ export function DashboardPage() {
 
   const { data: categories = [], isLoading: isCategoriesLoading } = useCategories()
 
-  // 初回ローディング判定: チャンネルが 0 件の間は 5 秒間隔でポーリングして監視する
-  const [wasInitialSetup, setWasInitialSetup] = useState(false)
-  const { data: channels = [], isLoading: isChannelsLoading } = useQuery<ChannelResponse[]>({
-    queryKey: ['channels', { isActive: true }],
-    queryFn: () => apiFetch<ChannelResponse[]>('/api/channels?isActive=true'),
-    refetchInterval: wasInitialSetup ? 5000 : false,
+  const [initialSetupDetected, setInitialSetupDetected] = useState(false)
+  const { data: channels = [], isLoading: isChannelsLoading } = useChannels(true, {
+    refetchInterval: initialSetupDetected ? 5000 : false,
   })
   const isInitialSetup = !isChannelsLoading && channels.length === 0
 
-  // 初回ローディング状態の追跡（一度チャンネルが取得されたらポーリングを停止）
   useEffect(() => {
     if (isChannelsLoading) return
-    if (channels.length === 0) {
-      setWasInitialSetup(true)
-    } else {
-      setWasInitialSetup(false)
-    }
+    setInitialSetupDetected(channels.length === 0)
   }, [channels.length, isChannelsLoading])
 
   // Sort/filter state from URL search params

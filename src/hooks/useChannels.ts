@@ -4,10 +4,11 @@ import { toast } from 'sonner'
 import { apiFetch } from '@/lib/api-client'
 import type { ChannelResponse } from '@/types/api'
 
-export function useChannels(isActive: boolean) {
+export function useChannels(isActive: boolean, options?: { refetchInterval?: number | false }) {
   return useQuery<ChannelResponse[]>({
     queryKey: ['channels', { isActive }],
     queryFn: () => apiFetch<ChannelResponse[]>(`/api/channels?isActive=${isActive}`),
+    ...(options?.refetchInterval !== undefined && { refetchInterval: options.refetchInterval }),
   })
 }
 

@@ -83,19 +83,16 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (existingUserSetting === null) {
-          // 初回ログイン: チャンネル同期ジョブをエンキュー
           console.info(`[auth] 初回ログイン: userId=${user.id}`)
-          await queue.add(
+          queue.add(
             SETUP_JOB_NAME,
             { userId: user.id },
             {
-              delay: 0,
               attempts: 3,
               backoff: { type: 'exponential', delay: 5000 },
               jobId: `${SETUP_JOB_NAME}:${user.id}`,
             },
-          )
-          console.info(`[auth] Setup job enqueued: userId=${user.id}`)
+          ).catch((err) => console.error('[auth] Failed to enqueue setup job', err))
         }
       }
 
