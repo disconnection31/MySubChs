@@ -2,8 +2,9 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
-import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES } from '@/lib/config'
+import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES, SETUP_JOB_NAME } from '@/lib/config'
 import { prisma } from '@/lib/db'
+import { queue } from '@/lib/queue'
 
 export const authOptions: NextAuthOptions = {
   // @auth/prisma-adapter を使用して Account テーブルに OAuth トークンを保存する
@@ -82,8 +83,16 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (existingUserSetting === null) {
-          // T28 で BullMQ ジョブエンキューを実装するため、現時点はログ出力のみ
           console.info(`[auth] 初回ログイン: userId=${user.id}`)
+          queue.add(
+            SETUP_JOB_NAME,
+            { userId: user.id },
+            {
+              attempts: 3,
+              backoff: { type: 'exponential', delay: 5000 },
+              jobId: `${SETUP_JOB_NAME}:${user.id}`,
+            },
+          ).catch((err) => console.error('[auth] Failed to enqueue setup job', err))
         }
       }
 
