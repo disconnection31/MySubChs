@@ -1,8 +1,13 @@
+'use client'
+
+import { Suspense } from 'react'
+
+import { DashboardPage } from '@/components/features/dashboard/DashboardPage'
+
 export default function Home() {
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-bold">MySubChs</h1>
-      <p className="text-muted-foreground">YouTubeサブスクリプション管理</p>
-    </main>
+    <Suspense>
+      <DashboardPage />
+    </Suspense>
   )
 }
