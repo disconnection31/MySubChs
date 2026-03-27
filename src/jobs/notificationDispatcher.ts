@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import {
+  NOTIFICATION_APP_NAME,
   NOTIFICATION_MAX_INDIVIDUAL,
   NOTIFICATION_APP_ICON_PATH,
   YOUTUBE_CONTENT_URL_TEMPLATE,
@@ -61,8 +62,6 @@ export type NotificationPayload = PushPayload & {
   priority: number
 }
 
-// ---- (b) Build notification events from new contents and live transitions ----
-
 export function buildNotificationEvents(
   newContents: NewContentInfo[],
   liveTransitions: LiveTransitionInfo[],
@@ -123,8 +122,6 @@ export function buildNotificationEvents(
   return events
 }
 
-// ---- (c) Aggregate events by channel + kind ----
-
 export function aggregateEvents(
   events: NotificationEvent[],
 ): AggregatedNotification[] {
@@ -157,8 +154,6 @@ export function aggregateEvents(
 
   return aggregated
 }
-
-// ---- (d) Build payloads ----
 
 function kindToBodyPrefix(kind: EventKind, count: number): string {
   if (count > 1) {
@@ -219,8 +214,6 @@ export function buildPayloads(
   return payloads
 }
 
-// ---- (e) Apply priority sorting and limit ----
-
 export function applyPriorityAndLimit(
   payloads: NotificationPayload[],
 ): PushPayload[] {
@@ -239,7 +232,7 @@ export function applyPriorityAndLimit(
 
   // Add summary notification
   result.push({
-    title: 'MySubChs',
+    title: NOTIFICATION_APP_NAME,
     body: `他${remainingCount}件の新着があります`,
     icon: NOTIFICATION_APP_ICON_PATH,
     data: { url: '/' },
@@ -247,8 +240,6 @@ export function applyPriorityAndLimit(
 
   return result
 }
-
-// ---- (f) Send to all subscriptions ----
 
 async function sendToAllSubscriptions(
   userId: string,
@@ -293,8 +284,6 @@ async function sendToAllSubscriptions(
     )
   }
 }
-
-// ---- (a) Main entry point ----
 
 export async function dispatchNotifications(params: {
   categoryId: string

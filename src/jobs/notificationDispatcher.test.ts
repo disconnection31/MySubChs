@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { type DeepMockProxy, mockDeep, mockReset } from 'vitest-mock-extended'
 
+import { NOTIFICATION_APP_NAME } from '@/lib/config'
+
 import {
   buildNotificationEvents,
   aggregateEvents,
@@ -303,7 +305,7 @@ describe('applyPriorityAndLimit', () => {
     expect(result).toHaveLength(6) // 5 individual + 1 summary
     // Last should be summary
     const summary = result[5]
-    expect(summary.title).toBe('MySubChs')
+    expect(summary.title).toBe(NOTIFICATION_APP_NAME)
     expect(summary.body).toBe('他2件の新着があります')
     expect(summary.icon).toBe('/icon-192x192.png')
     expect(summary.data).toEqual({ url: '/' })
@@ -335,7 +337,7 @@ describe('applyPriorityAndLimit', () => {
     const result = applyPriorityAndLimit(payloads)
     expect(result).toHaveLength(5)
     // No summary
-    expect(result.every((p) => p.title !== 'MySubChs')).toBe(true)
+    expect(result.every((p) => p.title !== NOTIFICATION_APP_NAME)).toBe(true)
   })
 })
 
