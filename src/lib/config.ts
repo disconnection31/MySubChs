@@ -61,3 +61,6 @@ export const REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX = 'manual-poll:cooldown:'
 
 // YouTube コンテンツ URL テンプレート
 export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
+
+// ダッシュボード: 未分類カテゴリの仮想ID
+export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized'
