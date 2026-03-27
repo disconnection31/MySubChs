@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
+import { removePollingJob } from '@/lib/bullmq-helpers'
 import { CATEGORY_NAME_MAX_LENGTH } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
@@ -100,8 +101,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
       where: { id: categoryId },
     })
 
-    // BullMQ polling job deletion - no-op stub (T22)
-    // TODO: Remove polling job for this category
+    // BullMQ polling job deletion
+    try {
+      await removePollingJob(categoryId)
+    } catch (err) {
+      // Redis failure is non-fatal — self-healing on Worker restart will recover
+      console.error('[categories] Failed to remove polling job:', err)
+    }
 
     return new NextResponse(null, { status: 204 })
   } catch (error) {

@@ -28,6 +28,12 @@ vi.mock('@/lib/api-helpers', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/bullmq-helpers', () => ({
+  registerPollingJob: vi.fn().mockResolvedValue(undefined),
+  removePollingJob: vi.fn().mockResolvedValue(undefined),
+  getEffectiveIntervalMs: vi.fn().mockResolvedValue(1800000),
+}))
+
 let prismaMock: MockPrisma
 
 beforeEach(async () => {

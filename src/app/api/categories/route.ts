@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
+import { getEffectiveIntervalMs, registerPollingJob } from '@/lib/bullmq-helpers'
 import { CATEGORY_NAME_MAX_LENGTH } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
@@ -85,8 +86,15 @@ export async function POST(request: Request) {
       })
     })
 
-    // BullMQ polling job registration - no-op stub (T22)
-    // TODO: Register polling job for this category
+    // BullMQ polling job registration
+    // autoPollingEnabled defaults to true for new categories
+    try {
+      const effectiveIntervalMs = await getEffectiveIntervalMs(auth.userId, null)
+      await registerPollingJob(category.id, effectiveIntervalMs)
+    } catch (err) {
+      // Redis failure is non-fatal — self-healing on Worker restart will recover
+      console.error('[categories] Failed to register polling job:', err)
+    }
 
     return NextResponse.json(
       formatCategory(category as CategoryWithNotificationSetting),

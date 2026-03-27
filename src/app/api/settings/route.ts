@@ -5,14 +5,17 @@ import {
   isValidContentRetentionDays,
   isValidPollingInterval,
 } from '@/lib/api-helpers'
+import { bulkUpdateGlobalInterval } from '@/lib/bullmq-helpers'
 import {
   DEFAULT_CONTENT_RETENTION_DAYS,
   DEFAULT_POLLING_INTERVAL_MINUTES,
+  REDIS_KEY_QUOTA_EXHAUSTED,
   YOUTUBE_QUOTA_DAILY_LIMIT,
   YOUTUBE_QUOTA_WARNING_THRESHOLD,
 } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
+import { redis } from '@/lib/redis'
 
 import { calculateEstimatedDailyQuota } from './helpers'
 
@@ -63,8 +66,14 @@ export async function GET() {
     const estimatedDailyQuota = calculateEstimatedDailyQuota(categoryQuotaInputs)
     const tokenStatus = account?.token_error != null ? 'error' : 'valid'
 
-    // quotaExhaustedUntil: スタブ（T22 で Redis 導入後に実装）
-    const quotaExhaustedUntil = null
+    // Read quota exhaustion status from Redis
+    let quotaExhaustedUntil: string | null = null
+    try {
+      quotaExhaustedUntil = await redis.get(REDIS_KEY_QUOTA_EXHAUSTED)
+    } catch (err) {
+      // Redis failure is non-fatal — return null
+      console.error('[settings] Failed to read quota exhaustion status:', err)
+    }
 
     return NextResponse.json({
       pollingIntervalMinutes: userSetting.pollingIntervalMinutes,
@@ -143,8 +152,15 @@ export async function PATCH(request: Request) {
       },
     })
 
-    // グローバル pollingIntervalMinutes 変更時の BullMQ ジョブ一括更新: no-op スタブ (T22 で解消)
-    // TODO: pollingIntervalMinutes が変更された場合、全カテゴリの Repeatable Job の間隔を更新する
+    // Bulk update BullMQ jobs when global pollingIntervalMinutes changes
+    if (pollingIntervalMinutes !== undefined) {
+      try {
+        await bulkUpdateGlobalInterval(auth.userId, pollingIntervalMinutes)
+      } catch (err) {
+        // Redis failure is non-fatal — self-healing on Worker restart will recover
+        console.error('[settings] Failed to bulk update polling jobs:', err)
+      }
+    }
 
     return NextResponse.json({
       pollingIntervalMinutes: userSetting.pollingIntervalMinutes,
