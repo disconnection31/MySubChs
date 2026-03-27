@@ -67,3 +67,9 @@ export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
 
 // ダッシュボード: 未分類カテゴリの仮想ID
 export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized'
+
+// 通知: 個別通知の最大件数
+export const NOTIFICATION_MAX_INDIVIDUAL = 5
+
+// 通知: デフォルトアプリアイコンパス
+export const NOTIFICATION_APP_ICON_PATH = '/icon-192x192.png'

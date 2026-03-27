@@ -8,6 +8,8 @@ import {
 } from '@/lib/config'
 import { youTubeAdapter, YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 import type { VideoDetail } from '@/lib/platforms/base'
+import { dispatchNotifications } from '@/jobs/notificationDispatcher'
+import type { NewContentInfo, LiveTransitionInfo, ChannelInfo } from '@/jobs/notificationDispatcher'
 
 // ---- Types ----
 
@@ -388,6 +390,10 @@ export async function executePolling(
   // Collect all DB operations for batched transaction
   const dbOperations: ReturnType<typeof prisma.content.upsert>[] = []
 
+  // Accumulators for notification dispatch (Step 8)
+  const notificationNewContents: NewContentInfo[] = []
+  const notificationLiveTransitions: LiveTransitionInfo[] = []
+
   // Process new content
   for (const platformContentId of newContentIds) {
     const detail = videoDetailMap.get(platformContentId)
@@ -398,6 +404,15 @@ export async function executePolling(
 
     const fields = determineNewContentFields(detail, channelId, now)
     if (!fields) continue
+
+    // Collect for notification dispatch
+    notificationNewContents.push({
+      platformContentId,
+      channelId,
+      type: fields.type,
+      status: fields.status,
+      title: fields.title,
+    })
 
     dbOperations.push(
       prisma.content.upsert({
@@ -454,6 +469,15 @@ export async function executePolling(
     const updateFields = determineExistingUpcomingUpdate(detail, existing)
     if (!updateFields) continue
 
+    // Collect UPCOMING → LIVE transitions for notification dispatch
+    if (updateFields.status === ContentStatus.LIVE && detail) {
+      notificationLiveTransitions.push({
+        platformContentId: existing.platformContentId,
+        channelId: existing.channelId,
+        title: detail.title,
+      })
+    }
+
     dbOperations.push(
       prisma.content.update({
         where: { id: existing.id },
@@ -481,8 +505,29 @@ export async function executePolling(
   // Step 7: WatchLater auto-assignment (no-op hook point)
   // TODO: T26 で実装
 
-  // Step 8: Push notification (no-op hook point)
-  // TODO: T25 で実装
+  // Step 8: Push notification dispatch
+  if (notificationNewContents.length > 0 || notificationLiveTransitions.length > 0) {
+    try {
+      // Build channel map for notification payloads
+      const notificationChannelMap = new Map<string, ChannelInfo>()
+      for (const channel of channels) {
+        notificationChannelMap.set(channel.id, {
+          name: channel.name,
+          iconUrl: channel.iconUrl,
+        })
+      }
+
+      await dispatchNotifications({
+        categoryId,
+        newContents: notificationNewContents,
+        liveTransitions: notificationLiveTransitions,
+        channelMap: notificationChannelMap,
+      })
+    } catch (err) {
+      // Notification failure must not fail the polling job
+      console.error(`[polling] Notification dispatch failed for category ${categoryId}: ${err}`)
+    }
+  }
 
   console.info(
     `[polling] Polling completed for category ${categoryId}: ${newContentIds.length} new, ${existingLiveContents.length} live checked, ${existingUpcomingContents.length} upcoming checked`,
