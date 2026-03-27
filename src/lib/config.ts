@@ -72,6 +72,9 @@ export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
 // ダッシュボード: 未分類カテゴリの仮想ID
 export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized'
 
+// 初回ログイン時のチャンネル取得ポーリング間隔（ミリ秒）
+export const INITIAL_LOADING_POLL_INTERVAL_MS = 5_000
+
 // 通知
 export const NOTIFICATION_APP_NAME = 'MySubChs'
 export const NOTIFICATION_MAX_INDIVIDUAL = 5

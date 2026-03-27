@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 import { useCategories } from '@/hooks/useCategories'
+import { useChannels } from '@/hooks/useChannels'
 import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
 
 import { ContentHeader } from './ContentHeader'
 import { ContentList } from './ContentList'
+import { InitialLoadingState } from './InitialLoadingState'
 import { MobileSidebar } from './MobileSidebar'
+import { QuotaExhaustedBanner } from './QuotaExhaustedBanner'
 import { Sidebar } from './Sidebar'
 
 export function DashboardPage() {
@@ -16,6 +19,10 @@ export function DashboardPage() {
   const searchParams = useSearchParams()
 
   const { data: categories = [], isLoading: isCategoriesLoading } = useCategories()
+
+  // Fetch active channels to detect initial loading state (0 channels = first login)
+  const { data: channels, isLoading: isChannelsLoading } = useChannels(true)
+  const hasNoChannels = !isChannelsLoading && (channels ?? []).length === 0
 
   // Sort/filter state from URL search params
   const order = (searchParams.get('order') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
@@ -77,47 +84,54 @@ export function DashboardPage() {
   }, [selectedCategoryId, categories])
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
-      {/* PC sidebar */}
-      <Sidebar
-        categories={sortedCategories}
-        selectedCategoryId={selectedCategoryId}
-        onSelectCategory={setSelectedCategoryId}
-      />
-
-      {/* Main area */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Mobile header with hamburger */}
-        <div className="flex items-center gap-2 border-b px-2 py-2 md:hidden">
-          <MobileSidebar
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+      <QuotaExhaustedBanner />
+      {hasNoChannels ? (
+        <InitialLoadingState />
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {/* PC sidebar */}
+          <Sidebar
             categories={sortedCategories}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
-          <span className="truncate text-sm font-medium">{categoryName}</span>
-        </div>
 
-        {/* Content header (PC: full, mobile: sort/filter only) */}
-        <ContentHeader
-          categoryName={categoryName}
-          order={order}
-          watchLaterOnly={watchLaterOnly}
-          includeCancelled={includeCancelled}
-          onToggleOrder={handleToggleOrder}
-          onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
-          onToggleIncludeCancelled={handleToggleIncludeCancelled}
-        />
+          {/* Main area */}
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {/* Mobile header with hamburger */}
+            <div className="flex items-center gap-2 border-b px-2 py-2 md:hidden">
+              <MobileSidebar
+                categories={sortedCategories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={setSelectedCategoryId}
+              />
+              <span className="truncate text-sm font-medium">{categoryName}</span>
+            </div>
 
-        {/* Content list with infinite scroll */}
-        <div className="flex-1 overflow-y-auto">
-          <ContentList
-            categoryId={selectedCategoryId}
-            order={order}
-            watchLaterOnly={watchLaterOnly}
-            includeCancelled={includeCancelled}
-          />
+            {/* Content header (PC: full, mobile: sort/filter only) */}
+            <ContentHeader
+              categoryName={categoryName}
+              order={order}
+              watchLaterOnly={watchLaterOnly}
+              includeCancelled={includeCancelled}
+              onToggleOrder={handleToggleOrder}
+              onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
+              onToggleIncludeCancelled={handleToggleIncludeCancelled}
+            />
+
+            {/* Content list with infinite scroll */}
+            <div className="flex-1 overflow-y-auto">
+              <ContentList
+                categoryId={selectedCategoryId}
+                order={order}
+                watchLaterOnly={watchLaterOnly}
+                includeCancelled={includeCancelled}
+              />
+            </div>
+          </main>
         </div>
-      </main>
+      )}
     </div>
   )
 }
