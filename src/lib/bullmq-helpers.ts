@@ -1,18 +1,16 @@
-import { DEFAULT_POLLING_INTERVAL_MINUTES } from '@/lib/config'
+import { AUTO_POLL_JOB_PREFIX, DEFAULT_POLLING_INTERVAL_MINUTES } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { queue } from '@/lib/queue'
 
-/**
- * Register a BullMQ repeatable polling job for a category.
- *
- * @param categoryId - Target category ID
- * @param intervalMs - Polling interval in milliseconds
- */
+function autoPollJobName(categoryId: string): string {
+  return `${AUTO_POLL_JOB_PREFIX}${categoryId}`
+}
+
 export async function registerPollingJob(
   categoryId: string,
   intervalMs: number,
 ): Promise<void> {
-  const jobName = `auto-poll:${categoryId}`
+  const jobName = autoPollJobName(categoryId)
   await queue.add(
     jobName,
     { categoryId },
@@ -23,14 +21,8 @@ export async function registerPollingJob(
   )
 }
 
-/**
- * Remove a BullMQ repeatable polling job for a category.
- * Searches existing repeatable jobs by name and removes the matching one.
- *
- * @param categoryId - Target category ID
- */
 export async function removePollingJob(categoryId: string): Promise<void> {
-  const jobName = `auto-poll:${categoryId}`
+  const jobName = autoPollJobName(categoryId)
   const repeatableJobs = await queue.getRepeatableJobs()
   const target = repeatableJobs.find((j) => j.name === jobName)
   if (target) {
@@ -38,13 +30,6 @@ export async function removePollingJob(categoryId: string): Promise<void> {
   }
 }
 
-/**
- * Update a BullMQ repeatable polling job's interval.
- * Removes the old job and registers a new one with the updated interval.
- *
- * @param categoryId - Target category ID
- * @param newIntervalMs - New polling interval in milliseconds
- */
 export async function updatePollingJobInterval(
   categoryId: string,
   newIntervalMs: number,
@@ -58,9 +43,6 @@ export async function updatePollingJobInterval(
  * Only affects categories where:
  * - NotificationSetting.pollingIntervalMinutes IS NULL (using global default)
  * - NotificationSetting.autoPollingEnabled = true
- *
- * @param userId - The user whose categories to update
- * @param newGlobalIntervalMinutes - New global polling interval in minutes
  */
 export async function bulkUpdateGlobalInterval(
   userId: string,
@@ -77,10 +59,19 @@ export async function bulkUpdateGlobalInterval(
     select: { id: true },
   })
 
+  if (categories.length === 0) return
+
   const newIntervalMs = newGlobalIntervalMinutes * 60 * 1000
 
+  // Fetch repeatable jobs once to avoid N+1 Redis calls
+  const repeatableJobs = await queue.getRepeatableJobs()
+
   for (const category of categories) {
-    await removePollingJob(category.id)
+    const jobName = autoPollJobName(category.id)
+    const target = repeatableJobs.find((j) => j.name === jobName)
+    if (target) {
+      await queue.removeRepeatableByKey(target.key)
+    }
     await registerPollingJob(category.id, newIntervalMs)
   }
 }
@@ -88,10 +79,6 @@ export async function bulkUpdateGlobalInterval(
 /**
  * Get the effective polling interval in milliseconds for a category.
  * Uses the category-specific interval if set, otherwise falls back to user global setting.
- *
- * @param userId - The user ID
- * @param categoryPollingIntervalMinutes - Category-specific interval (null = use global)
- * @returns Interval in milliseconds
  */
 export async function getEffectiveIntervalMs(
   userId: string,
