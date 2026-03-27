@@ -43,3 +43,7 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/swe-worker-*.js
 public/swe-worker-*.js.map
+
+# Claude Code (local)
+.claude/settings.local.json
+.claude/worktrees/
