@@ -9,11 +9,14 @@ import {
   REDIS_KEY_POLLING_LOCK_PREFIX,
   CONTENT_CLEANUP_CRON,
   CONTENT_CLEANUP_JOB_NAME,
+  WATCHLATER_CLEANUP_CRON,
+  WATCHLATER_CLEANUP_JOB_NAME,
 } from '@/lib/config'
 import { queue } from '@/lib/queue'
 import { YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 import { executePolling, setQuotaExhausted } from './polling'
 import { executeContentCleanup } from './contentCleanup'
+import { executeWatchLaterCleanup } from './watchLaterCleanup'
 
 // ---- Types ----
 
@@ -148,6 +151,25 @@ async function reconcileRepeatableJobs(): Promise<void> {
     )
   }
 
+  // WatchLaterCleanup: cron ベースの Repeatable Job を登録
+  // §15: attempts=3, backoff exponential 5分
+  const existingWatchLaterCleanupJob = existingJobs.find((j) => j.name === WATCHLATER_CLEANUP_JOB_NAME)
+  if (!existingWatchLaterCleanupJob) {
+    await queue.add(
+      WATCHLATER_CLEANUP_JOB_NAME,
+      {},
+      {
+        repeat: { pattern: WATCHLATER_CLEANUP_CRON },
+        jobId: WATCHLATER_CLEANUP_JOB_NAME,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5 * 60 * 1000 },
+      },
+    )
+    console.info(
+      `[worker] Registered watchlater-cleanup job (cron: ${WATCHLATER_CLEANUP_CRON})`,
+    )
+  }
+
   console.info('[worker] Repeatable job reconciliation completed')
 }
 
@@ -242,6 +264,12 @@ async function processJob(job: Job<JobData>): Promise<void> {
   // content-cleanup ジョブを処理（DB操作のみ、YouTube API不要）
   if (jobName === CONTENT_CLEANUP_JOB_NAME) {
     await executeContentCleanup()
+    return
+  }
+
+  // watchlater-cleanup ジョブを処理（DB操作のみ、YouTube API不要）
+  if (jobName === WATCHLATER_CLEANUP_JOB_NAME) {
+    await executeWatchLaterCleanup()
     return
   }
 

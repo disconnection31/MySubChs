@@ -10,6 +10,7 @@ import { youTubeAdapter, YouTubeQuotaExceededError } from '@/lib/platforms/youtu
 import type { VideoDetail } from '@/lib/platforms/base'
 import { dispatchNotifications } from '@/jobs/notificationDispatcher'
 import type { NewContentInfo, LiveTransitionInfo, ChannelInfo } from '@/jobs/notificationDispatcher'
+import { autoAssignWatchLater } from '@/jobs/watchLaterAutoAssign'
 
 // ---- Types ----
 
@@ -502,8 +503,15 @@ export async function executePolling(
     ])
   }
 
-  // Step 7: WatchLater auto-assignment (no-op hook point)
-  // TODO: T26 で実装
+  // Step 7: WatchLater auto-assignment
+  if (newContentIds.length > 0) {
+    try {
+      await autoAssignWatchLater(categoryId, newContentIds, now)
+    } catch (err) {
+      // WatchLater auto-assignment failure must not fail the polling job
+      console.error(`[polling] WatchLater auto-assignment failed for category ${categoryId}: ${err}`)
+    }
+  }
 
   // Step 8: Push notification dispatch
   if (notificationNewContents.length > 0 || notificationLiveTransitions.length > 0) {
