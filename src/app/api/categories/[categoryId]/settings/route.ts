@@ -6,6 +6,12 @@ import {
   isValidAutoExpireHours,
   isValidPollingInterval,
 } from '@/lib/api-helpers'
+import {
+  getEffectiveIntervalMs,
+  registerPollingJob,
+  removePollingJob,
+  updatePollingJobInterval,
+} from '@/lib/bullmq-helpers'
 import { VALID_AUTO_EXPIRE_HOURS, VALID_POLLING_INTERVALS } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
@@ -144,8 +150,29 @@ export async function PATCH(request: Request, context: RouteContext) {
       data: updateData,
     })
 
-    // TODO: BullMQ polling job update (T22)
-    // pollingIntervalMinutes が変更された場合、Repeatable Job の間隔を更新する
+    // BullMQ polling job update based on setting changes
+    try {
+      const oldAutoPolling = existing.autoPollingEnabled
+      const newAutoPolling = updated.autoPollingEnabled
+      const oldInterval = existing.pollingIntervalMinutes
+      const newInterval = updated.pollingIntervalMinutes
+
+      if (oldAutoPolling && !newAutoPolling) {
+        // Polling disabled → remove job
+        await removePollingJob(categoryId)
+      } else if (!oldAutoPolling && newAutoPolling) {
+        // Polling enabled → register job
+        const effectiveIntervalMs = await getEffectiveIntervalMs(auth.userId, newInterval)
+        await registerPollingJob(categoryId, effectiveIntervalMs)
+      } else if (newAutoPolling && oldInterval !== newInterval) {
+        // Interval changed while polling is enabled → update job
+        const effectiveIntervalMs = await getEffectiveIntervalMs(auth.userId, newInterval)
+        await updatePollingJobInterval(categoryId, effectiveIntervalMs)
+      }
+    } catch (err) {
+      // Redis failure is non-fatal — self-healing on Worker restart will recover
+      console.error('[category-settings] Failed to update polling job:', err)
+    }
 
     return NextResponse.json(formatNotificationSetting(updated))
   } catch (error) {

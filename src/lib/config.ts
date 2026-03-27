@@ -54,6 +54,9 @@ export const MAX_CONTENTS_LIMIT = 50
 export const CONTENT_CLEANUP_CRON = '0 18 * * *' // JST 03:00 = UTC 18:00
 export const CONTENT_CLEANUP_JOB_NAME = 'content-cleanup'
 
+// BullMQ ジョブ名プレフィックス
+export const AUTO_POLL_JOB_PREFIX = 'auto-poll:'
+
 // Redis キー名
 export const REDIS_KEY_QUOTA_EXHAUSTED = 'quota:exhausted'
 export const REDIS_KEY_POLLING_LOCK_PREFIX = 'polling:lock:'

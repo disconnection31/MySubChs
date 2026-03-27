@@ -23,6 +23,17 @@ vi.mock('@/lib/api-helpers', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/redis', () => ({
+  redis: {
+    get: vi.fn().mockResolvedValue(null),
+  },
+  bullmqConnection: {},
+}))
+
+vi.mock('@/lib/bullmq-helpers', () => ({
+  bulkUpdateGlobalInterval: vi.fn().mockResolvedValue(undefined),
+}))
+
 async function getPrismaMock(): Promise<MockPrisma> {
   const mod = await vi.importMock<{ prisma: MockPrisma }>('@/lib/db')
   return mod.prisma
