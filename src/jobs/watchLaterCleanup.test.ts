@@ -39,7 +39,7 @@ describe('watchLaterCleanup', () => {
 
     expect(prismaMock.watchLater.deleteMany).toHaveBeenCalledWith({
       where: {
-        expiresAt: { lt: NOW },
+        expiresAt: { not: null, lt: NOW },
         removedVia: null,
       },
     })

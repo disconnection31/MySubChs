@@ -13,7 +13,7 @@ export async function executeWatchLaterCleanup(): Promise<void> {
 
   const result = await prisma.watchLater.deleteMany({
     where: {
-      expiresAt: { lt: now },
+      expiresAt: { not: null, lt: now },
       removedVia: null,
     },
   })

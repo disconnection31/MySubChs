@@ -149,7 +149,11 @@ describe('autoAssignWatchLater', () => {
     })
   })
 
-  it('skips content with removedVia IS NOT NULL', async () => {
+  // Design: any existing WatchLater record (active or removed) prevents auto re-addition.
+  // - removedVia IS NOT NULL: user explicitly removed → must not re-add (spec requirement)
+  // - removedVia IS NULL (active): already in watch later → no duplicate needed
+  // Both cases are handled by a single existingContentIds filter + skipDuplicates safety net.
+  it('skips content that already has a WatchLater record (active or removed)', async () => {
     prismaMock.category.findUnique.mockResolvedValue({
       id: CATEGORY_ID,
       userId: USER_ID,
@@ -168,7 +172,7 @@ describe('autoAssignWatchLater', () => {
       { id: 'content-2' },
     ] as any)
 
-    // content-1 has existing WatchLater record (removedVia set)
+    // content-1 has an existing WatchLater record (regardless of removedVia state)
     prismaMock.watchLater.findMany.mockResolvedValue([{ contentId: 'content-1' }] as any)
 
     prismaMock.watchLater.createMany.mockResolvedValue({ count: 1 })
@@ -182,45 +186,6 @@ describe('autoAssignWatchLater', () => {
           contentId: 'content-2',
           addedVia: WatchLaterSource.AUTO,
           expiresAt: new Date('2026-03-28T12:00:00.000Z'), // +24 hours
-          addedAt: NOW,
-        },
-      ],
-      skipDuplicates: true,
-    })
-  })
-
-  it('skips content with any existing WatchLater record', async () => {
-    prismaMock.category.findUnique.mockResolvedValue({
-      id: CATEGORY_ID,
-      userId: USER_ID,
-      name: 'Test',
-      displayOrder: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      notificationSetting: {
-        watchLaterDefault: true,
-        autoExpireHours: 24,
-      },
-    } as any)
-
-    prismaMock.content.findMany.mockResolvedValue([
-      { id: 'content-1' },
-      { id: 'content-2' },
-    ] as any)
-
-    // content-1 has existing WatchLater record (active)
-    prismaMock.watchLater.findMany.mockResolvedValue([{ contentId: 'content-1' }] as any)
-    prismaMock.watchLater.createMany.mockResolvedValue({ count: 1 })
-
-    await autoAssignWatchLater(CATEGORY_ID, ['vid-1', 'vid-2'], NOW)
-
-    expect(prismaMock.watchLater.createMany).toHaveBeenCalledWith({
-      data: [
-        {
-          userId: USER_ID,
-          contentId: 'content-2',
-          addedVia: WatchLaterSource.AUTO,
-          expiresAt: new Date('2026-03-28T12:00:00.000Z'),
           addedAt: NOW,
         },
       ],

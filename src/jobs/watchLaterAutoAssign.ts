@@ -15,6 +15,7 @@ export async function autoAssignWatchLater(
   categoryId: string,
   newContentPlatformIds: string[],
   now: Date,
+  platform: string = 'youtube',
 ): Promise<void> {
   if (newContentPlatformIds.length === 0) {
     return
@@ -46,7 +47,7 @@ export async function autoAssignWatchLater(
 
   const contents = await prisma.content.findMany({
     where: {
-      platform: 'youtube',
+      platform,
       platformContentId: { in: newContentPlatformIds },
     },
     select: { id: true },
