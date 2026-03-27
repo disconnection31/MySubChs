@@ -1,9 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 import { useContents } from '@/hooks/useContents'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 
 import { ContentEmptyState } from './ContentEmptyState'
 import { ContentItem } from './ContentItem'
@@ -14,6 +16,7 @@ type ContentListProps = {
   order: 'asc' | 'desc'
   watchLaterOnly: boolean
   includeCancelled: boolean
+  hasChannelsInCategory?: boolean
 }
 
 export function ContentList({
@@ -21,13 +24,15 @@ export function ContentList({
   order,
   watchLaterOnly,
   includeCancelled,
+  hasChannelsInCategory,
 }: ContentListProps) {
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useContents({
-    categoryId,
-    order,
-    watchLaterOnly,
-    includeCancelled,
-  })
+  const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useContents({
+      categoryId,
+      order,
+      watchLaterOnly,
+      includeCancelled,
+    })
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const hasNextPageRef = useRef(hasNextPage)
@@ -59,8 +64,29 @@ export function ContentList({
     return <ContentSkeleton />
   }
 
+  if (isError) {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>コンテンツの取得に失敗しました。</span>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              再試行
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   if (allContents.length === 0) {
-    return <ContentEmptyState watchLaterOnly={watchLaterOnly} />
+    return (
+      <ContentEmptyState
+        watchLaterOnly={watchLaterOnly}
+        hasChannelsInCategory={hasChannelsInCategory}
+      />
+    )
   }
 
   return (
