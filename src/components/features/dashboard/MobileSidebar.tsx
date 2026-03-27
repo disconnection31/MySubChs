@@ -3,10 +3,7 @@
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
 
-import { cn } from '@/lib/utils'
-import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -15,6 +12,8 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet'
 import type { CategoryResponse } from '@/types/api'
+
+import { CategoryNav } from './CategoryNav'
 
 type MobileSidebarProps = {
   categories: CategoryResponse[]
@@ -46,30 +45,11 @@ export function MobileSidebar({
             <SheetTitle>カテゴリ</SheetTitle>
             <SheetDescription className="sr-only">カテゴリを選択してください</SheetDescription>
           </SheetHeader>
-          <nav className="flex flex-col py-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handleSelect(category.id)}
-                className={cn(
-                  'truncate px-4 py-2 text-left text-sm transition-colors hover:bg-accent',
-                  selectedCategoryId === category.id && 'bg-accent font-medium',
-                )}
-              >
-                {category.name}
-              </button>
-            ))}
-            <Separator className="my-1" />
-            <button
-              onClick={() => handleSelect(UNCATEGORIZED_CATEGORY_ID)}
-              className={cn(
-                'truncate px-4 py-2 text-left text-sm transition-colors hover:bg-accent',
-                selectedCategoryId === UNCATEGORIZED_CATEGORY_ID && 'bg-accent font-medium',
-              )}
-            >
-              未分類
-            </button>
-          </nav>
+          <CategoryNav
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={handleSelect}
+          />
         </SheetContent>
       </Sheet>
     </div>

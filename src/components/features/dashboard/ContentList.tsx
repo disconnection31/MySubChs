@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { useContents } from '@/hooks/useContents'
@@ -30,29 +30,34 @@ export function ContentList({
   })
 
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const hasNextPageRef = useRef(hasNextPage)
+  const isFetchingNextPageRef = useRef(isFetchingNextPage)
+  hasNextPageRef.current = hasNextPage
+  isFetchingNextPageRef.current = isFetchingNextPage
+
+  const handleIntersect = useCallback(
+    (entries: IntersectionObserverEntry[]) => {
+      if (entries[0]?.isIntersecting && hasNextPageRef.current && !isFetchingNextPageRef.current) {
+        fetchNextPage()
+      }
+    },
+    [fetchNextPage],
+  )
 
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage()
-        }
-      },
-      { threshold: 0 },
-    )
-
+    const observer = new IntersectionObserver(handleIntersect, { threshold: 0 })
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [handleIntersect])
+
+  const allContents = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data])
 
   if (isLoading) {
     return <ContentSkeleton />
   }
-
-  const allContents = data?.pages.flatMap((page) => page.data) ?? []
 
   if (allContents.length === 0) {
     return <ContentEmptyState watchLaterOnly={watchLaterOnly} />

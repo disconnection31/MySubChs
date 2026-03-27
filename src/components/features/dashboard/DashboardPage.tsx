@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 import { useCategories } from '@/hooks/useCategories'
@@ -22,6 +22,11 @@ export function DashboardPage() {
   const watchLaterOnly = searchParams.get('watchLaterOnly') === 'true'
   const includeCancelled = searchParams.get('includeCancelled') === 'true'
 
+  const sortedCategories = useMemo(
+    () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
+    [categories],
+  )
+
   // Selected category (state-only, not in URL)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
@@ -30,14 +35,12 @@ export function DashboardPage() {
     if (selectedCategoryId !== null) return
     if (isCategoriesLoading) return
 
-    if (categories.length > 0) {
-      // Sort by sortOrder and pick the first
-      const sorted = [...categories].sort((a, b) => a.sortOrder - b.sortOrder)
-      setSelectedCategoryId(sorted[0].id)
+    if (sortedCategories.length > 0) {
+      setSelectedCategoryId(sortedCategories[0].id)
     } else {
       setSelectedCategoryId(UNCATEGORIZED_CATEGORY_ID)
     }
-  }, [categories, isCategoriesLoading, selectedCategoryId])
+  }, [sortedCategories, isCategoriesLoading, selectedCategoryId])
 
   const updateSearchParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -67,18 +70,17 @@ export function DashboardPage() {
     updateSearchParams({ includeCancelled: includeCancelled ? null : 'true' })
   }, [includeCancelled, updateSearchParams])
 
-  // Determine the displayed category name
-  const getCategoryName = (): string => {
+  const categoryName = useMemo(() => {
     if (selectedCategoryId === UNCATEGORIZED_CATEGORY_ID) return '未分類'
     const found = categories.find((c) => c.id === selectedCategoryId)
     return found?.name ?? ''
-  }
+  }, [selectedCategoryId, categories])
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)]">
       {/* PC sidebar */}
       <Sidebar
-        categories={[...categories].sort((a, b) => a.sortOrder - b.sortOrder)}
+        categories={sortedCategories}
         selectedCategoryId={selectedCategoryId}
         onSelectCategory={setSelectedCategoryId}
       />
@@ -88,16 +90,16 @@ export function DashboardPage() {
         {/* Mobile header with hamburger */}
         <div className="flex items-center gap-2 border-b px-2 py-2 md:hidden">
           <MobileSidebar
-            categories={[...categories].sort((a, b) => a.sortOrder - b.sortOrder)}
+            categories={sortedCategories}
             selectedCategoryId={selectedCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
-          <span className="truncate text-sm font-medium">{getCategoryName()}</span>
+          <span className="truncate text-sm font-medium">{categoryName}</span>
         </div>
 
         {/* Content header (PC: full, mobile: sort/filter only) */}
         <ContentHeader
-          categoryName={getCategoryName()}
+          categoryName={categoryName}
           order={order}
           watchLaterOnly={watchLaterOnly}
           includeCancelled={includeCancelled}
