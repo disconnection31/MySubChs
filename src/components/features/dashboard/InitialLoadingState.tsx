@@ -6,8 +6,7 @@ import { useChannels } from '@/hooks/useChannels'
 import { INITIAL_LOADING_POLL_INTERVAL_MS } from '@/lib/config'
 
 export function InitialLoadingState() {
-  // Poll for channels every 5 seconds until channels appear
-  // DashboardPage will switch to normal view once channels.length > 0
+  // Poll until channels appear; parent switches view when channels.length > 0
   useChannels(true, { refetchInterval: INITIAL_LOADING_POLL_INTERVAL_MS })
 
   return (

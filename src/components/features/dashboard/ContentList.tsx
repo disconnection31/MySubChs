@@ -81,7 +81,12 @@ export function ContentList({
   }
 
   if (allContents.length === 0) {
-    return <ContentEmptyState watchLaterOnly={watchLaterOnly} />
+    return (
+      <ContentEmptyState
+        watchLaterOnly={watchLaterOnly}
+        hasChannelsInCategory={hasChannelsInCategory}
+      />
+    )
   }
 
   return (

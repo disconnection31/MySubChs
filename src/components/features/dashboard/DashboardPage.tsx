@@ -83,61 +83,55 @@ export function DashboardPage() {
     return found?.name ?? ''
   }, [selectedCategoryId, categories])
 
-  // Show initial loading state when no channels exist (first login)
-  if (hasNoChannels) {
-    return (
-      <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-        <QuotaExhaustedBanner />
-        <InitialLoadingState />
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
       <QuotaExhaustedBanner />
-      <div className="flex min-h-0 flex-1">
-        {/* PC sidebar */}
-        <Sidebar
-          categories={sortedCategories}
-          selectedCategoryId={selectedCategoryId}
-          onSelectCategory={setSelectedCategoryId}
-        />
-
-        {/* Main area */}
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {/* Mobile header with hamburger */}
-          <div className="flex items-center gap-2 border-b px-2 py-2 md:hidden">
-            <MobileSidebar
-              categories={sortedCategories}
-              selectedCategoryId={selectedCategoryId}
-              onSelectCategory={setSelectedCategoryId}
-            />
-            <span className="truncate text-sm font-medium">{categoryName}</span>
-          </div>
-
-          {/* Content header (PC: full, mobile: sort/filter only) */}
-          <ContentHeader
-            categoryName={categoryName}
-            order={order}
-            watchLaterOnly={watchLaterOnly}
-            includeCancelled={includeCancelled}
-            onToggleOrder={handleToggleOrder}
-            onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
-            onToggleIncludeCancelled={handleToggleIncludeCancelled}
+      {hasNoChannels ? (
+        <InitialLoadingState />
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {/* PC sidebar */}
+          <Sidebar
+            categories={sortedCategories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={setSelectedCategoryId}
           />
 
-          {/* Content list with infinite scroll */}
-          <div className="flex-1 overflow-y-auto">
-            <ContentList
-              categoryId={selectedCategoryId}
+          {/* Main area */}
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            {/* Mobile header with hamburger */}
+            <div className="flex items-center gap-2 border-b px-2 py-2 md:hidden">
+              <MobileSidebar
+                categories={sortedCategories}
+                selectedCategoryId={selectedCategoryId}
+                onSelectCategory={setSelectedCategoryId}
+              />
+              <span className="truncate text-sm font-medium">{categoryName}</span>
+            </div>
+
+            {/* Content header (PC: full, mobile: sort/filter only) */}
+            <ContentHeader
+              categoryName={categoryName}
               order={order}
               watchLaterOnly={watchLaterOnly}
               includeCancelled={includeCancelled}
+              onToggleOrder={handleToggleOrder}
+              onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
+              onToggleIncludeCancelled={handleToggleIncludeCancelled}
             />
-          </div>
-        </main>
-      </div>
+
+            {/* Content list with infinite scroll */}
+            <div className="flex-1 overflow-y-auto">
+              <ContentList
+                categoryId={selectedCategoryId}
+                order={order}
+                watchLaterOnly={watchLaterOnly}
+                includeCancelled={includeCancelled}
+              />
+            </div>
+          </main>
+        </div>
+      )}
     </div>
   )
 }
