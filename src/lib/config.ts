@@ -1,3 +1,13 @@
+// UIプレビューモード（開発環境専用）
+export const DEV_USER_ID = '00000000-0000-4000-a000-000000000001'
+export const DEV_USER_EMAIL = 'dev@example.com'
+export const DEV_USER_NAME = 'Dev User'
+export const DEV_USER_IMAGE = '/images/placeholder-avatar.svg'
+
+export function isDevBypassAuth(): boolean {
+  return process.env.DEV_BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production'
+}
+
 // UserSetting のデフォルト値
 export const DEFAULT_POLLING_INTERVAL_MINUTES = 30
 export const DEFAULT_CONTENT_RETENTION_DAYS = 60

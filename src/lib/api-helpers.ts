@@ -2,14 +2,21 @@ import { getServerSession, type Session } from 'next-auth'
 
 import { authOptions } from '@/lib/auth'
 import {
+  DEV_USER_EMAIL,
+  DEV_USER_ID,
+  DEV_USER_IMAGE,
+  DEV_USER_NAME,
   VALID_AUTO_EXPIRE_HOURS,
   VALID_CONTENT_RETENTION_DAYS,
   VALID_POLLING_INTERVALS,
+  isDevBypassAuth,
 } from '@/lib/config'
 
 /**
  * 認証済みセッションを取得する。
  * 未認証の場合は null を返す。呼び出し元で早期 return を行うパターンで使用する。
+ *
+ * DEV_BYPASS_AUTH=true かつ非本番環境の場合、固定のdevユーザーセッションを返す。
  *
  * @example
  * const auth = await getAuthenticatedSession()
@@ -20,6 +27,20 @@ export async function getAuthenticatedSession(): Promise<{
   session: Session
   userId: string
 } | null> {
+  if (isDevBypassAuth()) {
+    const devSession = {
+      user: {
+        id: DEV_USER_ID,
+        name: DEV_USER_NAME,
+        email: DEV_USER_EMAIL,
+        image: DEV_USER_IMAGE,
+      },
+      expires: '2099-12-31T23:59:59.999Z',
+    } as Session
+
+    return { session: devSession, userId: DEV_USER_ID }
+  }
+
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
