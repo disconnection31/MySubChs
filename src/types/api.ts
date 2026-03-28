@@ -2,17 +2,22 @@ export type ApiErrorBody = {
   error: {
     code: string
     message: string
+    retryAfter?: number
   }
 }
 
 export class ApiError extends Error {
+  public readonly retryAfter?: number
+
   constructor(
     public readonly status: number,
     public readonly code: string,
     message: string,
+    retryAfter?: number,
   ) {
     super(message)
     this.name = 'ApiError'
+    this.retryAfter = retryAfter
   }
 }
 
@@ -101,6 +106,17 @@ export type PaginationMeta = {
 export type PaginatedResponse<T> = {
   data: T[]
   meta: PaginationMeta
+}
+
+// --- Manual Polling ---
+
+export type PollTriggerResponse = {
+  queued: boolean
+}
+
+export type PollStatusResponse = {
+  status: 'none' | 'waiting' | 'active' | 'completed' | 'failed'
+  cooldownRemaining: number
 }
 
 // --- UserSettings (GET /api/settings) ---
