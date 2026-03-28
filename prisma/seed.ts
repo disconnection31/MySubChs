@@ -32,8 +32,8 @@ const CH = Array.from({ length: 22 }, (_, i) => {
   return `40000000-0000-4000-a000-0000000000${num}`
 })
 
-// Content IDs (CT01-CT55)
-const CT = Array.from({ length: 55 }, (_, i) => {
+// Content IDs (CT01-CT51)
+const CT = Array.from({ length: 51 }, (_, i) => {
   const num = String(i + 1).padStart(2, '0')
   return `50000000-0000-4000-a000-0000000000${num}`
 })
@@ -84,7 +84,7 @@ async function main() {
       providerAccountId: 'dev-google-id-001',
       access_token: 'dev-access-token',
       refresh_token: 'dev-refresh-token',
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      expires_at: Math.floor(d(1).getTime() / 1000),
       token_type: 'Bearer',
       scope: 'openid email profile https://www.googleapis.com/auth/youtube.readonly',
     },
