@@ -40,6 +40,9 @@
     "tailwind-merge": "^3.5.0",
     "web-push": "^3.6.7"
   },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",

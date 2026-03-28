@@ -1,8 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   DEFAULT_CONTENT_RETENTION_DAYS,
   DEFAULT_POLLING_INTERVAL_MINUTES,
+  DEV_USER_EMAIL,
+  DEV_USER_ID,
+  DEV_USER_IMAGE,
+  DEV_USER_NAME,
   MANUAL_POLLING_COOLDOWN_SECONDS,
   VALID_POLLING_INTERVALS,
   YOUTUBE_PLAYLIST_ITEMS_MAX_RESULTS,
@@ -13,6 +17,7 @@ import {
   YOUTUBE_QUOTA_COST_VIDEOS,
   YOUTUBE_QUOTA_DAILY_LIMIT,
   YOUTUBE_QUOTA_WARNING_THRESHOLD,
+  isDevBypassAuth,
 } from '@/lib/config'
 
 describe('config', () => {
@@ -81,6 +86,63 @@ describe('config', () => {
 
     it('4つの有効な間隔値を持つ', () => {
       expect(VALID_POLLING_INTERVALS).toHaveLength(4)
+    })
+  })
+
+  describe('UIプレビューモード定数', () => {
+    it('DEV_USER_ID は固定UUIDである', () => {
+      expect(DEV_USER_ID).toBe('00000000-0000-4000-a000-000000000001')
+    })
+
+    it('DEV_USER_EMAIL は dev@example.com である', () => {
+      expect(DEV_USER_EMAIL).toBe('dev@example.com')
+    })
+
+    it('DEV_USER_NAME は Dev User である', () => {
+      expect(DEV_USER_NAME).toBe('Dev User')
+    })
+
+    it('DEV_USER_IMAGE はプレースホルダーアバターのパスである', () => {
+      expect(DEV_USER_IMAGE).toBe('/images/placeholder-avatar.svg')
+    })
+  })
+
+  describe('isDevBypassAuth', () => {
+    const originalEnv = process.env
+
+    afterEach(() => {
+      process.env = originalEnv
+      vi.unstubAllEnvs()
+    })
+
+    it('DEV_BYPASS_AUTH=true かつ NODE_ENV !== production で true を返す', () => {
+      vi.stubEnv('DEV_BYPASS_AUTH', 'true')
+      vi.stubEnv('NODE_ENV', 'development')
+      expect(isDevBypassAuth()).toBe(true)
+    })
+
+    it('DEV_BYPASS_AUTH=true かつ NODE_ENV=test で true を返す', () => {
+      vi.stubEnv('DEV_BYPASS_AUTH', 'true')
+      vi.stubEnv('NODE_ENV', 'test')
+      expect(isDevBypassAuth()).toBe(true)
+    })
+
+    it('DEV_BYPASS_AUTH=true かつ NODE_ENV=production で false を返す（二重ガード）', () => {
+      vi.stubEnv('DEV_BYPASS_AUTH', 'true')
+      vi.stubEnv('NODE_ENV', 'production')
+      expect(isDevBypassAuth()).toBe(false)
+    })
+
+    it('DEV_BYPASS_AUTH が未設定の場合 false を返す', () => {
+      vi.stubEnv('DEV_BYPASS_AUTH', '')
+      vi.stubEnv('NODE_ENV', 'development')
+      expect(isDevBypassAuth()).toBe(false)
+    })
+
+    it('DEV_BYPASS_AUTH=false の場合 false を返す', () => {
+      vi.stubEnv('DEV_BYPASS_AUTH', 'false')
+      vi.stubEnv('NODE_ENV', 'development')
+      expect(isDevBypassAuth()).toBe(false)
     })
   })
 })
