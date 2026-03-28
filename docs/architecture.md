@@ -228,3 +228,52 @@ ORDER BY contentAt ASC, id ASC
 ### ソート方向切替時の挙動
 
 ソート方向（昇順/降順）を切り替えるとカーソルは無効になる。フロントエンドはソート切替時にカーソルをリセットして先頭から再取得する。
+
+---
+
+## 6. UIプレビューモード
+
+YouTube API や Google OAuth なしに画面の見栄え・使い勝手を確認するための開発環境専用モード。
+
+### 有効化
+
+`.env` に `DEV_BYPASS_AUTH=true` を設定する。`NODE_ENV=production` では自動的に無効化される（二重ガード）。
+
+```bash
+# Worker不要、app + db + redis のみ起動
+docker compose up app db redis
+
+# シードデータ投入
+docker compose exec app npx prisma db seed
+```
+
+### 認証バイパス
+
+`isDevBypassAuth()`（`src/lib/config.ts`）が `true` を返す場合:
+
+- **middleware**: `getToken()` をスキップし全ページにアクセス可能。`/login` は `/` にリダイレクト
+- **API Routes**: `getAuthenticatedSession()` が固定の dev ユーザーセッションを返す
+
+### dev ユーザー
+
+| 項目 | 値 |
+|---|---|
+| ID | `00000000-0000-4000-a000-000000000001` |
+| Name | `Dev User` |
+| Email | `dev@example.com` |
+| Image | `/images/placeholder-avatar.svg` |
+
+### シードデータ（`prisma/seed.ts`）
+
+| データ | 件数 | 備考 |
+|---|---|---|
+| User | 1 | 固定UUID の dev ユーザー |
+| Account | 1 | ダミー Google Account |
+| UserSetting | 1 | デフォルト値 |
+| Category | 5 | ゲーム、音楽、技術、料理、エンタメ |
+| NotificationSetting | 5 | カテゴリごとに1件（一部カスタム設定あり） |
+| Channel | 22 | 各カテゴリに3〜4件 + 未分類3件 |
+| Content | 51 | VIDEO/LIVE混在、全ステータス（UPCOMING/LIVE/ARCHIVED/CANCELLED） |
+| WatchLater | 5 | MANUAL/AUTO混在、手動削除済みレコード含む |
+
+全レコードは固定UUIDを使用し `upsert` で投入されるため、繰り返し実行しても安全（冪等）。日時は 2026-03-15 基準の固定値。

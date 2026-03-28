@@ -118,7 +118,18 @@ REDIS_URL=
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # VAPID_PUBLIC_KEY と同じ値を設定する。Next.js の NEXT_PUBLIC_ プレフィックスによりブラウザ（フロントエンド）から参照可能になる。秘密情報ではないため公開して問題ない。
+
+# UIプレビューモード（開発環境専用、本番では無効）
+# DEV_BYPASS_AUTH=true
 ```
+
+### `DEV_BYPASS_AUTH`
+
+開発環境専用のUIプレビューモード。`true` に設定すると Google OAuth をスキップし、固定の dev ユーザーセッションでログインした状態になる。
+
+- `NODE_ENV=production` では自動的に無効化される（二重ガード）
+- YouTube API 呼び出しやWorkerプロセスは不要
+- 詳細は [architecture.md §6](./architecture.md) を参照
 
 ---
 
