@@ -19,7 +19,7 @@ export async function apiFetch<T>(url: string, options?: RequestInit): Promise<T
 
   if (!response.ok) {
     const body = data as ApiErrorBody
-    throw new ApiError(response.status, body.error.code, body.error.message)
+    throw new ApiError(response.status, body.error.code, body.error.message, body.error.retryAfter)
   }
 
   return data as T

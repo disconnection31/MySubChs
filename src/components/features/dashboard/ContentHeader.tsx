@@ -4,7 +4,10 @@ import { ArrowDownAZ, ArrowUpAZ, BookmarkCheck, EyeOff } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
+import { PollButton } from './PollButton'
+
 type ContentHeaderProps = {
+  categoryId: string | null
   categoryName: string
   order: 'asc' | 'desc'
   watchLaterOnly: boolean
@@ -15,6 +18,7 @@ type ContentHeaderProps = {
 }
 
 export function ContentHeader({
+  categoryId,
   categoryName,
   order,
   watchLaterOnly,
@@ -42,6 +46,7 @@ export function ContentHeader({
             </>
           )}
         </Button>
+        <PollButton categoryId={categoryId} />
       </div>
       <div className="mt-2 flex items-center gap-2">
         <Button

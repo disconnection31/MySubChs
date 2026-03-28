@@ -111,6 +111,7 @@ export function DashboardPage() {
 
             {/* Content header (PC: full, mobile: sort/filter only) */}
             <ContentHeader
+              categoryId={selectedCategoryId}
               categoryName={categoryName}
               order={order}
               watchLaterOnly={watchLaterOnly}
