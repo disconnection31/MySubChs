@@ -26,8 +26,7 @@
         "Bash(git push -f)",
         "Bash(git push * main*)",
         "Bash(git reset --hard*)",
-        "Bash(docker compose down -v*)",
-        "Bash(docker compose down --volumes*)"
+
       ]
   }
 }
