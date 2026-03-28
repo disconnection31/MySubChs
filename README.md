@@ -32,8 +32,8 @@ GOOGLE_CLIENT_SECRET=dummy
 ```
 
 ```bash
-# 起動
-docker compose up --build -d
+# 起動（Worker不要、app + db + redis のみ）
+docker compose up --build -d app db redis
 
 # DBマイグレーション
 docker compose exec app npx prisma migrate deploy
