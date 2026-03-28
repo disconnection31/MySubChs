@@ -22,9 +22,9 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const { categoryId } = await context.params
 
-    // Check category exists and belongs to user
     const category = await prisma.category.findFirst({
       where: { id: categoryId, userId: auth.userId },
+      select: { id: true },
     })
     if (!category) {
       return errorResponse(
@@ -34,24 +34,22 @@ export async function GET(_request: Request, context: RouteContext) {
       )
     }
 
-    // Get job status from BullMQ
     const jobName = `manual-poll:${categoryId}`
-    const job = await queue.getJob(jobName)
+    const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
+    const [job, ttl] = await Promise.all([
+      queue.getJob(jobName),
+      redis.ttl(cooldownKey),
+    ])
+
     let status: PollStatusResponse['status'] = 'none'
     if (job) {
       const state = await job.getState()
-      // BullMQ states: 'completed' | 'failed' | 'active' | 'delayed' | 'waiting' | 'waiting-children' | 'prioritized' | 'unknown'
       if (state === 'completed' || state === 'failed' || state === 'active' || state === 'waiting') {
         status = state
       } else {
-        // delayed, waiting-children, prioritized, unknown → treat as waiting
         status = 'waiting'
       }
     }
-
-    // Get cooldown remaining from Redis
-    const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
-    const ttl = await redis.ttl(cooldownKey)
 
     const response: PollStatusResponse = {
       status,

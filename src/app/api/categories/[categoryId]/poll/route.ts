@@ -36,8 +36,12 @@ export async function POST(_request: Request, context: RouteContext) {
       )
     }
 
-    // Check quota exhaustion
-    const quotaExhausted = await redis.exists(REDIS_KEY_QUOTA_EXHAUSTED)
+    const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
+    const [quotaExhausted, ttl] = await Promise.all([
+      redis.exists(REDIS_KEY_QUOTA_EXHAUSTED),
+      redis.ttl(cooldownKey),
+    ])
+
     if (quotaExhausted) {
       return errorResponse(
         ErrorCode.QUOTA_EXHAUSTED,
@@ -46,17 +50,12 @@ export async function POST(_request: Request, context: RouteContext) {
       )
     }
 
-    // Check cooldown
-    const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
-    const ttl = await redis.ttl(cooldownKey)
     if (ttl > 0) {
       return cooldownErrorResponse(ttl)
     }
 
-    // Set cooldown (DB first, then Redis — but here Redis is the "state" store)
     await redis.set(cooldownKey, '1', 'EX', MANUAL_POLLING_COOLDOWN_SECONDS)
 
-    // Enqueue manual poll job
     const jobName = `manual-poll:${categoryId}`
     await queue.add(
       jobName,

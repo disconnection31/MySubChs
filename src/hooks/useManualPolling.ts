@@ -18,10 +18,10 @@ export function useManualPolling(categoryId: string | null) {
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const pollCountRef = useRef(0)
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastDataUpdatedAtRef = useRef(0)
 
   const isValidCategory = categoryId !== null && categoryId !== UNCATEGORIZED_CATEGORY_ID
 
-  // Status polling query — enabled only when in 'polling' state
   const statusQuery = useQuery<PollStatusResponse>({
     queryKey: ['poll-status', categoryId],
     queryFn: () => apiFetch<PollStatusResponse>(`/api/categories/${categoryId}/poll/status`),
@@ -30,9 +30,7 @@ export function useManualPolling(categoryId: string | null) {
     refetchIntervalInBackground: false,
   })
 
-  // Start cooldown countdown timer
   const startCooldownTimer = useCallback((seconds: number) => {
-    // Clear existing timer
     if (cooldownTimerRef.current) {
       clearInterval(cooldownTimerRef.current)
     }
@@ -55,15 +53,16 @@ export function useManualPolling(categoryId: string | null) {
     }, 1_000)
   }, [])
 
-  // Handle status polling result
+  // Handle status polling result — track via dataUpdatedAt to count actual fetches
   useEffect(() => {
     if (state !== 'polling' || !statusQuery.data) return
+    if (statusQuery.dataUpdatedAt === lastDataUpdatedAtRef.current) return
 
+    lastDataUpdatedAtRef.current = statusQuery.dataUpdatedAt
     pollCountRef.current += 1
     const { status, cooldownRemaining: remaining } = statusQuery.data
 
     if (status === 'completed' || status === 'failed' || status === 'none') {
-      // Job finished — refetch contents
       queryClient.invalidateQueries({ queryKey: ['contents'] })
 
       if (remaining > 0) {
@@ -75,7 +74,6 @@ export function useManualPolling(categoryId: string | null) {
       return
     }
 
-    // Timeout after max poll count
     if (pollCountRef.current >= STATUS_POLL_MAX_COUNT) {
       if (remaining > 0) {
         startCooldownTimer(remaining)
@@ -84,9 +82,8 @@ export function useManualPolling(categoryId: string | null) {
       }
       pollCountRef.current = 0
     }
-  }, [state, statusQuery.data, queryClient, startCooldownTimer])
+  }, [state, statusQuery.data, statusQuery.dataUpdatedAt, queryClient, startCooldownTimer])
 
-  // Trigger mutation
   const triggerMutation = useMutation<PollTriggerResponse, ApiError>({
     mutationFn: () =>
       apiFetch<PollTriggerResponse>(`/api/categories/${categoryId}/poll`, {
@@ -96,12 +93,10 @@ export function useManualPolling(categoryId: string | null) {
       setState('polling')
       pollCountRef.current = 0
     },
-    onError: (error) => {
+    onError: (error: ApiError) => {
       if (error.status === 429 && error.retryAfter) {
-        // Cooldown error
         startCooldownTimer(error.retryAfter)
       } else if (error.status === 503) {
-        // Quota exhausted
         setState('quotaExhausted')
       }
     },
@@ -120,9 +115,10 @@ export function useManualPolling(categoryId: string | null) {
       return
     }
 
-    // Fetch initial status to check for existing cooldown
+    let cancelled = false
     apiFetch<PollStatusResponse>(`/api/categories/${categoryId}/poll/status`)
       .then((data) => {
+        if (cancelled) return
         if (data.status === 'active' || data.status === 'waiting') {
           setState('polling')
           pollCountRef.current = 0
@@ -130,9 +126,11 @@ export function useManualPolling(categoryId: string | null) {
           startCooldownTimer(data.cooldownRemaining)
         }
       })
-      .catch(() => {
-        // Ignore errors on initial check
-      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
   }, [categoryId, isValidCategory, startCooldownTimer])
 
   // Cleanup timer on unmount
@@ -148,6 +146,5 @@ export function useManualPolling(categoryId: string | null) {
     state,
     cooldownRemaining,
     trigger,
-    isLoading: triggerMutation.isPending,
   }
 }
