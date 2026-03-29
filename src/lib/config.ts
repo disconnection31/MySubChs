@@ -73,6 +73,7 @@ export const SETUP_JOB_NAME = 'setup'
 
 // BullMQ ジョブ名プレフィックス
 export const AUTO_POLL_JOB_PREFIX = 'auto-poll-'
+export const MANUAL_POLL_JOB_PREFIX = 'manual-poll-'
 
 // Redis キー名
 export const REDIS_KEY_QUOTA_EXHAUSTED = 'quota:exhausted'

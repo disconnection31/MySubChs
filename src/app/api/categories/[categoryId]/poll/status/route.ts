@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
-import { REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX } from '@/lib/config'
+import { MANUAL_POLL_JOB_PREFIX, REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
 import { queue } from '@/lib/queue'
@@ -34,7 +34,7 @@ export async function GET(_request: Request, context: RouteContext) {
       )
     }
 
-    const jobId = `manual-poll-${categoryId}`
+    const jobId = `${MANUAL_POLL_JOB_PREFIX}${categoryId}`
     const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
     const [job, ttl] = await Promise.all([
       queue.getJob(jobId),

@@ -4,6 +4,8 @@ import { bullmqConnection, redis } from '@/lib/redis'
 import { prisma } from '@/lib/db'
 import { ensureValidToken } from '@/lib/tokenRefresh'
 import {
+  AUTO_POLL_JOB_PREFIX,
+  MANUAL_POLL_JOB_PREFIX,
   DEFAULT_POLLING_INTERVAL_MINUTES,
   REDIS_KEY_QUOTA_EXHAUSTED,
   REDIS_KEY_POLLING_LOCK_PREFIX,
@@ -79,13 +81,13 @@ async function reconcileRepeatableJobs(): Promise<void> {
   const existingJobs = await queue.getRepeatableJobs()
   const existingJobMap = new Map(
     existingJobs
-      .filter((j) => j.name.startsWith('auto-poll:'))
+      .filter((j) => j.name.startsWith(AUTO_POLL_JOB_PREFIX))
       .map((j) => [j.name, j]),
   )
 
   // 3. 不整合を修復
   for (const setting of categorySettings) {
-    const jobName = `auto-poll:${setting.categoryId}`
+    const jobName = `${AUTO_POLL_JOB_PREFIX}${setting.categoryId}`
     const existing = existingJobMap.get(jobName)
 
     if (setting.autoPollingEnabled) {
@@ -185,7 +187,7 @@ async function processJob(job: Job<JobData>): Promise<void> {
   const jobName = job.name
 
   // auto-poll / manual-poll のジョブを処理
-  if (jobName.startsWith('auto-poll:') || jobName.startsWith('manual-poll:')) {
+  if (jobName.startsWith(AUTO_POLL_JOB_PREFIX) || jobName.startsWith(MANUAL_POLL_JOB_PREFIX)) {
     const { categoryId } = job.data as AutoPollJobData
 
     // トークンリフレッシュ: ユーザーIDを取得
@@ -218,7 +220,7 @@ async function processJob(job: Job<JobData>): Promise<void> {
       return
     }
 
-    const isManual = jobName.startsWith('manual-poll:')
+    const isManual = jobName.startsWith(MANUAL_POLL_JOB_PREFIX)
 
     // §14: Redis ロックによる重複実行防止（auto-poll のみ）
     if (!isManual) {
