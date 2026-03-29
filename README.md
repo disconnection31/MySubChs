@@ -2,6 +2,30 @@
 
 YouTubeの登録チャンネルをカスタムカテゴリで整理し、新着動画・ライブ配信を追跡するWebアプリ。
 
+## 技術スタック
+
+| カテゴリ | 技術 |
+|---|---|
+| フロントエンド | Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, TanStack Query |
+| バックエンド | Next.js API Routes, NextAuth.js (Google OAuth), Prisma |
+| データストア | PostgreSQL 16, Redis 7 |
+| バックグラウンド | BullMQ |
+| インフラ | Docker Compose, next-pwa |
+
+## プロジェクト構成
+
+```
+src/
+├── app/           # Next.js App Router（ページ & API Routes）
+├── components/    # UIコンポーネント（shadcn/ui, レイアウト, 機能別）
+├── hooks/         # カスタムフック
+├── jobs/          # BullMQバックグラウンドジョブ
+├── lib/           # ユーティリティ、DB/Redis/認証クライアント
+│   └── platforms/ # プラットフォームアダプター（YouTube等）
+├── tests/         # テストヘルパー・フィクスチャ
+└── types/         # TypeScript型定義
+```
+
 ## 前提条件
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) がインストール・起動済みであること
