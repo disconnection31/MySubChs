@@ -72,7 +72,7 @@ export const WATCHLATER_CLEANUP_JOB_NAME = 'watchlater-cleanup'
 export const SETUP_JOB_NAME = 'setup'
 
 // BullMQ ジョブ名プレフィックス
-export const AUTO_POLL_JOB_PREFIX = 'auto-poll:'
+export const AUTO_POLL_JOB_PREFIX = 'auto-poll-'
 
 // Redis キー名
 export const REDIS_KEY_QUOTA_EXHAUSTED = 'quota:exhausted'

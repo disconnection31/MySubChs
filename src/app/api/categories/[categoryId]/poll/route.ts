@@ -61,7 +61,7 @@ export async function POST(_request: Request, context: RouteContext) {
       jobName,
       { categoryId },
       {
-        jobId: jobName,
+        jobId: `manual-poll-${categoryId}`,
         removeOnComplete: { age: 60 },
         removeOnFail: { age: 300 },
       },

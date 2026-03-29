@@ -90,7 +90,7 @@ export const authOptions: NextAuthOptions = {
             {
               attempts: 3,
               backoff: { type: 'exponential', delay: 5000 },
-              jobId: `${SETUP_JOB_NAME}:${user.id}`,
+              jobId: `${SETUP_JOB_NAME}-${user.id}`,
             },
           ).catch((err) => console.error('[auth] Failed to enqueue setup job', err))
         }

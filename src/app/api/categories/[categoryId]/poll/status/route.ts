@@ -34,10 +34,10 @@ export async function GET(_request: Request, context: RouteContext) {
       )
     }
 
-    const jobName = `manual-poll:${categoryId}`
+    const jobId = `manual-poll-${categoryId}`
     const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
     const [job, ttl] = await Promise.all([
-      queue.getJob(jobName),
+      queue.getJob(jobId),
       redis.ttl(cooldownKey),
     ])
 
