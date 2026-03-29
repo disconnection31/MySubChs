@@ -27,6 +27,7 @@ export type VideoDetail = {
   scheduledStartTime: string | null
   actualStartTime: string | null
   actualEndTime: string | null
+  durationSeconds: number | null
 }
 
 export interface PlatformAdapter {

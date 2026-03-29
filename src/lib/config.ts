@@ -83,6 +83,9 @@ export const REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX = 'manual-poll:cooldown:'
 // YouTube コンテンツ URL テンプレート
 export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
 
+// ショート動画の判定閾値（秒）。この値以下の動画をSHORTとして分類する
+export const SHORT_DURATION_THRESHOLD_SECONDS = 60
+
 // ダッシュボード: 未分類カテゴリの仮想ID
 export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized'
 

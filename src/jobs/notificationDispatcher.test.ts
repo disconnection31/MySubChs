@@ -116,6 +116,29 @@ describe('buildNotificationEvents', () => {
     expect(result).toEqual([])
   })
 
+  it('SHORT/ARCHIVED → newVideo when notifyOnNewVideo is true', () => {
+    const contents: NewContentInfo[] = [
+      { platformContentId: 'v5', channelId: 'ch1', type: 'SHORT', status: 'ARCHIVED', title: 'Short 1' },
+    ]
+    const result = buildNotificationEvents(contents, [], defaultSettings)
+    expect(result).toEqual([
+      { kind: 'newVideo', platformContentId: 'v5', channelId: 'ch1', title: 'Short 1' },
+    ])
+  })
+
+  it('SHORT/ARCHIVED → no event when notifyOnNewVideo is false', () => {
+    const contents: NewContentInfo[] = [
+      { platformContentId: 'v5', channelId: 'ch1', type: 'SHORT', status: 'ARCHIVED', title: 'Short 1' },
+    ]
+    const settings: NotificationSettings = {
+      notifyOnNewVideo: false,
+      notifyOnLiveStart: true,
+      notifyOnUpcoming: true,
+    }
+    const result = buildNotificationEvents(contents, [], settings)
+    expect(result).toEqual([])
+  })
+
   it('does not generate events for VIDEO/LIVE combination', () => {
     // VIDEO type with LIVE status should not happen, but ensure no events
     const contents: NewContentInfo[] = [

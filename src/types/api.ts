@@ -84,7 +84,7 @@ export type ContentResponse = {
   platform: string
   platformContentId: string
   title: string
-  type: 'VIDEO' | 'LIVE'
+  type: 'VIDEO' | 'SHORT' | 'LIVE'
   status: 'UPCOMING' | 'LIVE' | 'ARCHIVED' | 'CANCELLED'
   contentAt: string
   publishedAt: string | null

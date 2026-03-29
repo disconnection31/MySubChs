@@ -113,9 +113,9 @@ components:
           type: string
         type:
           type: string
-          enum: [VIDEO, LIVE]
+          enum: [VIDEO, SHORT, LIVE]
           description: >
-            VIDEO = 投稿動画 / LIVE = ライブ配信（予定中・配信中・終了後すべてを含む）。
+            VIDEO = 投稿動画 / SHORT = ショート動画（duration ≤ 60秒） / LIVE = ライブ配信（予定中・配信中・終了後すべてを含む）。
             作成後は変更しない（不変フィールド）。
         status:
           type: string

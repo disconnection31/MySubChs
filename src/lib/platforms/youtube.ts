@@ -105,10 +105,29 @@ type YouTubeVideoItem = {
     actualStartTime?: string
     actualEndTime?: string
   }
+  contentDetails?: {
+    duration?: string // ISO 8601 duration (e.g. "PT1M30S")
+  }
 }
 
 type YouTubeVideosResponse = {
   items?: YouTubeVideoItem[]
+}
+
+// ---- ISO 8601 duration parser ----
+
+/**
+ * YouTube API の ISO 8601 duration 文字列を秒数に変換する。
+ * 例: "PT1H2M3S" → 3723, "PT30S" → 30, "P0D" → 0
+ */
+export function parseISO8601Duration(iso: string): number {
+  const match = iso.match(/^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
+  if (!match) return 0
+  const days = parseInt(match[1] || '0', 10)
+  const hours = parseInt(match[2] || '0', 10)
+  const minutes = parseInt(match[3] || '0', 10)
+  const seconds = parseInt(match[4] || '0', 10)
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds
 }
 
 // ---- YouTubeAdapter implementation ----
@@ -275,7 +294,7 @@ export class YouTubeAdapter implements PlatformAdapter {
       batches.map((batch) => {
         // id 指定のバッチAPIのため maxResults は不要（返却件数は id の数で決まる）
         const params = new URLSearchParams({
-          part: 'snippet,liveStreamingDetails',
+          part: 'snippet,liveStreamingDetails,contentDetails',
           id: batch.join(','),
         })
         return this.fetchYouTubeAPI<YouTubeVideosResponse>(
@@ -295,6 +314,9 @@ export class YouTubeAdapter implements PlatformAdapter {
           scheduledStartTime: item.liveStreamingDetails?.scheduledStartTime ?? null,
           actualStartTime: item.liveStreamingDetails?.actualStartTime ?? null,
           actualEndTime: item.liveStreamingDetails?.actualEndTime ?? null,
+          durationSeconds: item.contentDetails?.duration
+            ? parseISO8601Duration(item.contentDetails.duration)
+            : null,
         })) ?? [],
     )
   }

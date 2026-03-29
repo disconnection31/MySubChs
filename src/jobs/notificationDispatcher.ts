@@ -72,7 +72,7 @@ export function buildNotificationEvents(
   // New content events
   for (const content of newContents) {
     if (
-      content.type === 'VIDEO' &&
+      (content.type === 'VIDEO' || content.type === 'SHORT') &&
       content.status === 'ARCHIVED' &&
       settings.notifyOnNewVideo
     ) {

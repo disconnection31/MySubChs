@@ -58,6 +58,13 @@ describe('getStatusBadgeConfig', () => {
     expect(config.className).toContain('border-green-600')
   })
 
+  it('returns purple outline badge for SHORT/ARCHIVED', () => {
+    const config = getStatusBadgeConfig('SHORT', 'ARCHIVED')
+    expect(config.text).toBe('ショート')
+    expect(config.variant).toBe('outline')
+    expect(config.className).toContain('border-purple-600')
+  })
+
   it('returns muted outline badge for LIVE/CANCELLED', () => {
     const config = getStatusBadgeConfig('LIVE', 'CANCELLED')
     expect(config.text).toBe('キャンセル済み')
@@ -96,6 +103,26 @@ describe('getContentDateText', () => {
   it('returns null for VIDEO/ARCHIVED when publishedAt is null', () => {
     const content = makeContent({
       type: 'VIDEO',
+      status: 'ARCHIVED',
+      publishedAt: null,
+    })
+    expect(getContentDateText(content)).toBeNull()
+  })
+
+  it('returns publishedAt for SHORT/ARCHIVED', () => {
+    const content = makeContent({
+      type: 'SHORT',
+      status: 'ARCHIVED',
+      publishedAt: '2026-03-03T15:00:00+09:00',
+    })
+    const result = getContentDateText(content)
+    expect(result).not.toBeNull()
+    expect(result).not.toContain('配信')
+  })
+
+  it('returns null for SHORT/ARCHIVED when publishedAt is null', () => {
+    const content = makeContent({
+      type: 'SHORT',
       status: 'ARCHIVED',
       publishedAt: null,
     })

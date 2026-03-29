@@ -51,6 +51,7 @@ describe('polling', () => {
         scheduledStartTime: '2026-03-23T18:00:00Z',
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -72,6 +73,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -91,6 +93,7 @@ describe('polling', () => {
         scheduledStartTime: '2026-03-22T11:00:00Z',
         actualStartTime: '2026-03-22T11:05:00Z',
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -111,6 +114,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -121,7 +125,7 @@ describe('polling', () => {
       expect(result.contentAt).toEqual(now)
     })
 
-    it('none → VIDEO/ARCHIVED with publishedAt as contentAt', () => {
+    it('none with duration > 60s → VIDEO/ARCHIVED', () => {
       const detail: VideoDetail = {
         platformContentId: 'vid-3',
         title: 'Regular Video',
@@ -130,6 +134,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: 600,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -138,9 +143,63 @@ describe('polling', () => {
       expect(result.status).toBe(ContentStatus.ARCHIVED)
       expect(result.publishedAt).toEqual(new Date('2026-03-20T08:00:00Z'))
       expect(result.contentAt).toEqual(new Date('2026-03-20T08:00:00Z'))
+      expect(result.durationSeconds).toBe(600)
     })
 
-    it('none without publishedAt falls back to now for contentAt', () => {
+    it('none with duration ≤ 60s → SHORT/ARCHIVED', () => {
+      const detail: VideoDetail = {
+        platformContentId: 'vid-short',
+        title: 'Short Video',
+        liveBroadcastContent: 'none',
+        publishedAt: '2026-03-20T08:00:00Z',
+        scheduledStartTime: null,
+        actualStartTime: null,
+        actualEndTime: null,
+        durationSeconds: 30,
+      }
+
+      const result = determineNewContentFields(detail, channelId, now)!
+
+      expect(result.type).toBe(ContentType.SHORT)
+      expect(result.status).toBe(ContentStatus.ARCHIVED)
+      expect(result.durationSeconds).toBe(30)
+    })
+
+    it('none with duration exactly 60s → SHORT/ARCHIVED', () => {
+      const detail: VideoDetail = {
+        platformContentId: 'vid-60',
+        title: 'Exactly 60s',
+        liveBroadcastContent: 'none',
+        publishedAt: '2026-03-20T08:00:00Z',
+        scheduledStartTime: null,
+        actualStartTime: null,
+        actualEndTime: null,
+        durationSeconds: 60,
+      }
+
+      const result = determineNewContentFields(detail, channelId, now)!
+
+      expect(result.type).toBe(ContentType.SHORT)
+    })
+
+    it('none with duration 61s → VIDEO/ARCHIVED', () => {
+      const detail: VideoDetail = {
+        platformContentId: 'vid-61',
+        title: 'Just Over 60s',
+        liveBroadcastContent: 'none',
+        publishedAt: '2026-03-20T08:00:00Z',
+        scheduledStartTime: null,
+        actualStartTime: null,
+        actualEndTime: null,
+        durationSeconds: 61,
+      }
+
+      const result = determineNewContentFields(detail, channelId, now)!
+
+      expect(result.type).toBe(ContentType.VIDEO)
+    })
+
+    it('none with null duration → VIDEO/ARCHIVED (graceful fallback)', () => {
       const detail: VideoDetail = {
         platformContentId: 'vid-3',
         title: 'Regular Video',
@@ -149,6 +208,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -187,6 +247,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: '2026-03-22T10:05:00Z',
         actualEndTime: '2026-03-22T12:00:00Z',
+        durationSeconds: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -207,6 +268,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -226,6 +288,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: '2026-03-22T10:05:00Z',
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -261,6 +324,7 @@ describe('polling', () => {
         scheduledStartTime: '2026-03-22T10:00:00Z',
         actualStartTime: '2026-03-22T10:02:00Z',
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -282,6 +346,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -303,6 +368,7 @@ describe('polling', () => {
         scheduledStartTime: '2026-03-23T14:00:00Z',
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -323,6 +389,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -343,6 +410,7 @@ describe('polling', () => {
         scheduledStartTime: null,
         actualStartTime: null,
         actualEndTime: null,
+        durationSeconds: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)

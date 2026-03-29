@@ -66,15 +66,15 @@ describe('contentCleanup', () => {
     expect(where.status).toEqual({ not: 'LIVE' })
     expect(where.OR).toHaveLength(5)
 
-    // VIDEO with publishedAt
+    // VIDEO/SHORT with publishedAt
     expect(where.OR![0]).toEqual({
-      type: 'VIDEO',
+      type: { in: ['VIDEO', 'SHORT'] },
       publishedAt: { lt: expectedCutoff },
     })
 
-    // VIDEO with publishedAt null → createdAt fallback
+    // VIDEO/SHORT with publishedAt null → createdAt fallback
     expect(where.OR![1]).toEqual({
-      type: 'VIDEO',
+      type: { in: ['VIDEO', 'SHORT'] },
       publishedAt: null,
       createdAt: { lt: expectedCutoff },
     })
@@ -133,7 +133,7 @@ describe('contentCleanup', () => {
     expect(call1Where.channel).toEqual({ userId: 'user-1' })
     const expectedCutoff1 = new Date('2026-02-20T18:00:00.000Z')
     expect(call1Where.OR![0]).toEqual({
-      type: 'VIDEO',
+      type: { in: ['VIDEO', 'SHORT'] },
       publishedAt: { lt: expectedCutoff1 },
     })
 
@@ -142,7 +142,7 @@ describe('contentCleanup', () => {
     expect(call2Where.channel).toEqual({ userId: 'user-2' })
     const expectedCutoff2 = new Date('2025-12-22T18:00:00.000Z')
     expect(call2Where.OR![0]).toEqual({
-      type: 'VIDEO',
+      type: { in: ['VIDEO', 'SHORT'] },
       publishedAt: { lt: expectedCutoff2 },
     })
   })
