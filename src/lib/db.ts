@@ -12,13 +12,13 @@ function maskParams(paramsString: string): string {
     const params: unknown[] = JSON.parse(paramsString);
     const masked = params.map((p) => {
       if (typeof p === "string" && SENSITIVE_PATTERNS.some((re) => re.test(p))) {
-        return `${p.substring(0, 6)}***`;
+        return "[REDACTED]";
       }
       return p;
     });
     return JSON.stringify(masked);
   } catch {
-    return paramsString;
+    return "[unparseable]";
   }
 }
 
@@ -41,14 +41,13 @@ function createPrismaClient(): PrismaClient {
   });
 
   if (isDev) {
-    (client.$on as (event: "query", callback: (e: Prisma.QueryEvent) => void) => void)(
-      "query",
-      (e) => {
-        console.log(`prisma:query ${e.query}`);
-        console.log(`prisma:params ${maskParams(e.params)}`);
-        console.log(`prisma:duration ${e.duration}ms`);
-      },
-    );
+    // PrismaClient の型パラメータにログ設定が反映されないため型キャストが必要
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (client as any).$on("query", (e: Prisma.QueryEvent) => {
+      console.log(`prisma:query ${e.query}`);
+      console.log(`prisma:params ${maskParams(e.params)}`);
+      console.log(`prisma:duration ${e.duration}ms`);
+    });
   }
 
   return client;
@@ -59,5 +58,3 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
-
-export default prisma;

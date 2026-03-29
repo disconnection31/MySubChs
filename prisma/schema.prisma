@@ -67,9 +67,9 @@ model Account {
   token_type        String? // @auth/prisma-adapter が要求するフィールド
   id_token          String? // @auth/prisma-adapter が要求するフィールド
   session_state     String? // @auth/prisma-adapter が要求するフィールド
-  scope                      String?
-  refresh_token_expires_in   Int? // Google OAuth が返すリフレッシュトークンの有効期限（秒）。PrismaAdapter が保存するため定義が必要
-  token_error                String? // トークンエラーコード。BullMQ Worker がリフレッシュ失敗時に書き込む。NULL = 正常。再認証成功時に NULL にリセット
+  scope                    String?
+  refresh_token_expires_in Int? // Google OAuth が返すリフレッシュトークンの有効期限（秒）。PrismaAdapter が保存するため定義が必要
+  token_error              String? // トークンエラーコード。BullMQ Worker がリフレッシュ失敗時に書き込む。NULL = 正常。再認証成功時に NULL にリセット
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
