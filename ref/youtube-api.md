@@ -24,6 +24,18 @@
 | 夏時間（3月〜11月） | 毎日 16:00 |
 | 冬時間（11月〜3月） | 毎日 17:00 |
 
+### クォータ使用量の確認方法
+
+Google Cloud Console で当日のクォータ消費実績を確認できる。
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にログイン
+2. **APIとサービス** → **有効なAPI** → **YouTube Data API v3** → **割り当て** タブを開く
+
+本プロジェクトの直リンク:
+- https://console.cloud.google.com/apis/api/youtube.googleapis.com/quotas?project=mysubchs
+
+> **注意**: 使用量の反映には数分程度の遅延がある。リアルタイムの値ではない。
+
 ---
 
 ## 2. エンドポイント別コスト
