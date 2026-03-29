@@ -72,7 +72,7 @@ docker compose exec app npx prisma db seed
 
 YouTube APIとの連携を含む全機能を利用する場合。
 
-1. [Google Cloud Console](https://console.cloud.google.com/) でOAuth 2.0クライアントを作成
+1. Google Cloud ConsoleでOAuth 2.0クライアントを作成（[詳細手順](docs/integrations/google-cloud-setup.md)）
    - 承認済みリダイレクトURI: `http://localhost:3000/api/auth/callback/google`
    - スコープ: `youtube.readonly`
 2. `.env` に `GOOGLE_CLIENT_ID` と `GOOGLE_CLIENT_SECRET` を設定

@@ -52,11 +52,11 @@ describe('bullmq-helpers', () => {
       await registerPollingJob('cat-123', 1800000)
 
       expect(mockQueueAdd).toHaveBeenCalledWith(
-        'auto-poll:cat-123',
+        'auto-poll-cat-123',
         { categoryId: 'cat-123' },
         {
           repeat: { every: 1800000 },
-          jobId: 'auto-poll:cat-123',
+          jobId: 'auto-poll-cat-123',
         },
       )
     })
@@ -65,8 +65,8 @@ describe('bullmq-helpers', () => {
   describe('removePollingJob', () => {
     it('該当するジョブが存在する場合に removeRepeatableByKey を呼び出す', async () => {
       mockGetRepeatableJobs.mockResolvedValue([
-        { name: 'auto-poll:cat-123', key: 'key-123', every: '1800000' },
-        { name: 'auto-poll:cat-456', key: 'key-456', every: '600000' },
+        { name: 'auto-poll-cat-123', key: 'key-123', every: '1800000' },
+        { name: 'auto-poll-cat-456', key: 'key-456', every: '600000' },
       ])
       mockRemoveRepeatableByKey.mockResolvedValue(undefined)
 
@@ -77,7 +77,7 @@ describe('bullmq-helpers', () => {
 
     it('該当するジョブが存在しない場合は何もしない', async () => {
       mockGetRepeatableJobs.mockResolvedValue([
-        { name: 'auto-poll:cat-456', key: 'key-456', every: '600000' },
+        { name: 'auto-poll-cat-456', key: 'key-456', every: '600000' },
       ])
 
       await removePollingJob('cat-999')
@@ -89,7 +89,7 @@ describe('bullmq-helpers', () => {
   describe('updatePollingJobInterval', () => {
     it('旧ジョブを削除して新しい間隔で再登録する', async () => {
       mockGetRepeatableJobs.mockResolvedValue([
-        { name: 'auto-poll:cat-123', key: 'key-123', every: '1800000' },
+        { name: 'auto-poll-cat-123', key: 'key-123', every: '1800000' },
       ])
       mockRemoveRepeatableByKey.mockResolvedValue(undefined)
       mockQueueAdd.mockResolvedValue(undefined)
@@ -98,11 +98,11 @@ describe('bullmq-helpers', () => {
 
       expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith('key-123')
       expect(mockQueueAdd).toHaveBeenCalledWith(
-        'auto-poll:cat-123',
+        'auto-poll-cat-123',
         { categoryId: 'cat-123' },
         {
           repeat: { every: 600000 },
-          jobId: 'auto-poll:cat-123',
+          jobId: 'auto-poll-cat-123',
         },
       )
     })
@@ -115,8 +115,8 @@ describe('bullmq-helpers', () => {
         { id: 'cat-2' } as never,
       ])
       mockGetRepeatableJobs.mockResolvedValue([
-        { name: 'auto-poll:cat-1', key: 'key-1', every: '1800000' },
-        { name: 'auto-poll:cat-2', key: 'key-2', every: '1800000' },
+        { name: 'auto-poll-cat-1', key: 'key-1', every: '1800000' },
+        { name: 'auto-poll-cat-2', key: 'key-2', every: '1800000' },
       ])
       mockRemoveRepeatableByKey.mockResolvedValue(undefined)
       mockQueueAdd.mockResolvedValue(undefined)
@@ -140,11 +140,11 @@ describe('bullmq-helpers', () => {
 
       // Verify the new interval is 10 minutes = 600000ms
       expect(mockQueueAdd).toHaveBeenCalledWith(
-        'auto-poll:cat-1',
+        'auto-poll-cat-1',
         { categoryId: 'cat-1' },
         {
           repeat: { every: 600000 },
-          jobId: 'auto-poll:cat-1',
+          jobId: 'auto-poll-cat-1',
         },
       )
     })

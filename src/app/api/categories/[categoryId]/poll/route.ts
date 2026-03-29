@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
 import {
+  MANUAL_POLL_JOB_PREFIX,
   MANUAL_POLLING_COOLDOWN_SECONDS,
   REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX,
   REDIS_KEY_QUOTA_EXHAUSTED,
@@ -56,12 +57,12 @@ export async function POST(_request: Request, context: RouteContext) {
 
     await redis.set(cooldownKey, '1', 'EX', MANUAL_POLLING_COOLDOWN_SECONDS)
 
-    const jobName = `manual-poll:${categoryId}`
+    const jobId = `${MANUAL_POLL_JOB_PREFIX}${categoryId}`
     await queue.add(
-      jobName,
+      jobId,
       { categoryId },
       {
-        jobId: jobName,
+        jobId,
         removeOnComplete: { age: 60 },
         removeOnFail: { age: 300 },
       },
