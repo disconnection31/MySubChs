@@ -119,10 +119,11 @@ type YouTubeVideosResponse = {
 /**
  * YouTube API の ISO 8601 duration 文字列を秒数に変換する。
  * 例: "PT1H2M3S" → 3723, "PT30S" → 30, "P0D" → 0
+ * 不正な形式の場合は null を返す（SHORT誤判定を防止）。
  */
-export function parseISO8601Duration(iso: string): number {
+export function parseISO8601Duration(iso: string): number | null {
   const match = iso.match(/^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
-  if (!match) return 0
+  if (!match) return null
   const days = parseInt(match[1] || '0', 10)
   const hours = parseInt(match[2] || '0', 10)
   const minutes = parseInt(match[3] || '0', 10)

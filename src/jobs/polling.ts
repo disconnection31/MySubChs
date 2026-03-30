@@ -453,6 +453,7 @@ export async function executePolling(
           actualStartAt: fields.actualStartAt,
           actualEndAt: fields.actualEndAt,
           contentAt: fields.contentAt,
+          durationSeconds: fields.durationSeconds,
         },
       }),
     )

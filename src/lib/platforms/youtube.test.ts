@@ -50,6 +50,18 @@ describe('parseISO8601Duration', () => {
   it('P0D → 0 (no time component)', () => {
     expect(parseISO8601Duration('P0D')).toBe(0)
   })
+
+  it('空文字列 → null', () => {
+    expect(parseISO8601Duration('')).toBeNull()
+  })
+
+  it('不正な形式 → null', () => {
+    expect(parseISO8601Duration('invalid')).toBeNull()
+  })
+
+  it('数値のみ → null', () => {
+    expect(parseISO8601Duration('120')).toBeNull()
+  })
 })
 
 describe('YouTubeAdapter', () => {
