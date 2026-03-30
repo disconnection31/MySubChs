@@ -17,13 +17,14 @@ datasource db {
 
 enum ContentType {
   VIDEO // 投稿動画。不変。
+  SHORT // ショート動画（duration ≤ 60秒）。不変。
   LIVE // ライブ配信（予定中・配信中・終了後のすべてを含む）。不変。
 }
 
 enum ContentStatus {
   UPCOMING // 配信予定（type=LIVE のみ）
   LIVE // 配信中（type=LIVE のみ）
-  ARCHIVED // アーカイブ済（type=VIDEO または type=LIVE の配信終了後）
+  ARCHIVED // アーカイブ済（type=VIDEO, type=SHORT, または type=LIVE の配信終了後）
   CANCELLED // キャンセル（type=LIVE のみ。配信予定がキャンセルされた場合）
 }
 
@@ -147,6 +148,7 @@ model Content {
   actualEndAt       DateTime?
   contentAt         DateTime // ソート専用キー（architecture.md §6 参照）
   url               String // コンテンツURL（不変）。INSERT 時にのみ設定
+  durationSeconds   Int? // 動画の長さ（秒）。ショート判定に使用。LIVE コンテンツは NULL
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

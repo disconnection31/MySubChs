@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db'
 /**
  * Execute content cleanup job.
  * Deletes content that exceeds each user's contentRetentionDays setting.
- * - VIDEO: based on publishedAt (fallback to createdAt)
+ * - VIDEO/SHORT: based on publishedAt (fallback to createdAt)
  * - LIVE: based on actualStartAt → scheduledStartAt → createdAt (fallback chain)
  * - status=LIVE is excluded (actively streaming)
  * - WatchLater records are cascade-deleted via DB constraint (onDelete: Cascade)
@@ -36,13 +36,13 @@ export async function executeContentCleanup(): Promise<void> {
         channel: { userId: setting.userId },
         status: { not: 'LIVE' },
         OR: [
-          // VIDEO: publishedAt based (fallback to createdAt when null)
+          // VIDEO/SHORT: publishedAt based (fallback to createdAt when null)
           {
-            type: 'VIDEO',
+            type: { in: ['VIDEO', 'SHORT'] },
             publishedAt: { lt: cutoffDate },
           },
           {
-            type: 'VIDEO',
+            type: { in: ['VIDEO', 'SHORT'] },
             publishedAt: null,
             createdAt: { lt: cutoffDate },
           },

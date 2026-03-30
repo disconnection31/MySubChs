@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { YouTubeAdapter, YouTubeAuthError, YouTubeQuotaExceededError } from './youtube'
+import { parseISO8601Duration, YouTubeAdapter, YouTubeAuthError, YouTubeQuotaExceededError } from './youtube'
 
 // グローバル fetch をモック
 const mockFetch = vi.fn()
@@ -17,6 +17,52 @@ function mockResponse(body: unknown, status = 200): Response {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+describe('parseISO8601Duration', () => {
+  it('PT1H2M3S → 3723', () => {
+    expect(parseISO8601Duration('PT1H2M3S')).toBe(3723)
+  })
+
+  it('PT1M30S → 90', () => {
+    expect(parseISO8601Duration('PT1M30S')).toBe(90)
+  })
+
+  it('PT60S → 60', () => {
+    expect(parseISO8601Duration('PT60S')).toBe(60)
+  })
+
+  it('PT30S → 30', () => {
+    expect(parseISO8601Duration('PT30S')).toBe(30)
+  })
+
+  it('PT1H → 3600', () => {
+    expect(parseISO8601Duration('PT1H')).toBe(3600)
+  })
+
+  it('PT0S → 0', () => {
+    expect(parseISO8601Duration('PT0S')).toBe(0)
+  })
+
+  it('P1DT0S → 86400', () => {
+    expect(parseISO8601Duration('P1DT0S')).toBe(86400)
+  })
+
+  it('P0D → 0 (no time component)', () => {
+    expect(parseISO8601Duration('P0D')).toBe(0)
+  })
+
+  it('空文字列 → null', () => {
+    expect(parseISO8601Duration('')).toBeNull()
+  })
+
+  it('不正な形式 → null', () => {
+    expect(parseISO8601Duration('invalid')).toBeNull()
+  })
+
+  it('数値のみ → null', () => {
+    expect(parseISO8601Duration('120')).toBeNull()
+  })
+})
 
 describe('YouTubeAdapter', () => {
   let adapter: YouTubeAdapter
@@ -278,6 +324,9 @@ describe('YouTubeAdapter', () => {
                 actualStartTime: '2024-01-01T10:05:00Z',
                 actualEndTime: '2024-01-01T11:00:00Z',
               },
+              contentDetails: {
+                duration: 'PT10M30S',
+              },
             },
           ],
         }),
@@ -294,9 +343,14 @@ describe('YouTubeAdapter', () => {
           scheduledStartTime: '2024-01-01T10:00:00Z',
           actualStartTime: '2024-01-01T10:05:00Z',
           actualEndTime: '2024-01-01T11:00:00Z',
+          durationSeconds: 630,
         },
       ])
       expect(mockFetch).toHaveBeenCalledTimes(1)
+
+      // contentDetails パートがリクエストされていることを確認
+      const callUrl = mockFetch.mock.calls[0][0] as string
+      expect(callUrl).toContain('contentDetails')
     })
 
     it('51件の場合は2回 API を呼ぶ（バッチ分割）', async () => {
@@ -351,6 +405,7 @@ describe('YouTubeAdapter', () => {
       expect(result[0].scheduledStartTime).toBeNull()
       expect(result[0].actualStartTime).toBeNull()
       expect(result[0].actualEndTime).toBeNull()
+      expect(result[0].durationSeconds).toBeNull()
     })
   })
 

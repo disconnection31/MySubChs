@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { redis } from '@/lib/redis'
 import {
   REDIS_KEY_QUOTA_EXHAUSTED,
+  SHORT_DURATION_THRESHOLD_SECONDS,
   YOUTUBE_CONTENT_URL_TEMPLATE,
 } from '@/lib/config'
 import { youTubeAdapter, YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
@@ -24,6 +25,7 @@ type ContentFields = {
   actualEndAt: Date | null
   contentAt: Date
   url?: string
+  durationSeconds: number | null
 }
 
 type ExistingContent = {
@@ -74,6 +76,7 @@ export function determineNewContentFields(
       actualEndAt: null,
       contentAt: scheduledStartAt,
       url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
+      durationSeconds: null,
     }
   }
 
@@ -93,13 +96,16 @@ export function determineNewContentFields(
       actualEndAt: null,
       contentAt: actualStartAt,
       url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
+      durationSeconds: null,
     }
   }
 
-  // liveBroadcastContent === 'none' → VIDEO / ARCHIVED
+  // liveBroadcastContent === 'none' → VIDEO or SHORT / ARCHIVED
   const publishedAt = detail.publishedAt ? new Date(detail.publishedAt) : null
+  const isShort = detail.durationSeconds !== null
+    && detail.durationSeconds <= SHORT_DURATION_THRESHOLD_SECONDS
   return {
-    type: ContentType.VIDEO,
+    type: isShort ? ContentType.SHORT : ContentType.VIDEO,
     status: ContentStatus.ARCHIVED,
     title: detail.title,
     publishedAt,
@@ -108,6 +114,7 @@ export function determineNewContentFields(
     actualEndAt: null,
     contentAt: publishedAt ?? now,
     url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
+    durationSeconds: detail.durationSeconds,
   }
 }
 
@@ -436,6 +443,7 @@ export async function executePolling(
           actualEndAt: fields.actualEndAt,
           contentAt: fields.contentAt,
           url: fields.url!,
+          durationSeconds: fields.durationSeconds,
         },
         update: {
           title: fields.title,
@@ -445,6 +453,7 @@ export async function executePolling(
           actualStartAt: fields.actualStartAt,
           actualEndAt: fields.actualEndAt,
           contentAt: fields.contentAt,
+          durationSeconds: fields.durationSeconds,
         },
       }),
     )

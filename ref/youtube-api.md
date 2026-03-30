@@ -88,8 +88,16 @@ Google Cloud Console で当日のクォータ消費実績を確認できる。
 ### `videos.list`
 - `maxResults` の最大値: **50**
 - 1回のリクエストで最大50件のビデオIDをバッチ処理可能
-- `snippet`・`liveStreamingDetails` などのパートを組み合わせて取得できる
-- コスト: 1 unit / call（50件まで）
+- `snippet`・`liveStreamingDetails`・`contentDetails` などのパートを組み合わせて取得できる
+- コスト: 1 unit / call（50件まで。パート数に関わらずコストは同一）
+
+#### `contentDetails` パートのフィールド詳細（本プロジェクトで使用するもの）
+
+| フィールド | 説明 | 用途 |
+|---|---|---|
+| `duration` | 動画の長さ（ISO 8601 形式、例: `PT1H2M3S`） | ショート動画判定（≤ 60秒 → `type=SHORT`） |
+
+> **注意**: `contentDetails` パートには他にも `dimension`、`definition`、`caption` 等のフィールドがあるが、本プロジェクトでは `duration` のみを使用する。
 
 #### `liveStreamingDetails` パートのフィールド詳細
 
@@ -151,7 +159,7 @@ Google Cloud Console で当日のクォータ消費実績を確認できる。
 |---|---|
 | `search.list` | **使用しない**（100 units/call はコスト過大） |
 | `playlistItems.list` | 定期ポーリングの主軸。`maxResults=50` で最新50件取得 |
-| `videos.list` | 新着コンテンツの詳細取得 + `status=LIVE` のステータス確認のみ。50件バッチ処理 |
+| `videos.list` | 新着コンテンツの詳細取得（`snippet` + `liveStreamingDetails` + `contentDetails`）+ `status=LIVE` のステータス確認のみ。50件バッチ処理 |
 | `channels.list` | `uploadsPlaylistId` の初回取得のみ（以降はDBキャッシュを利用） |
 | `subscriptions.list` | チャンネル一覧の手動再同期時のみ |
 

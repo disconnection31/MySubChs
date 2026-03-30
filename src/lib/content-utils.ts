@@ -34,6 +34,13 @@ export function getStatusBadgeConfig(
       variant: 'outline',
     }
   }
+  if (type === 'SHORT' && status === 'ARCHIVED') {
+    return {
+      text: 'ショート',
+      className: 'border-purple-600 text-purple-600',
+      variant: 'outline',
+    }
+  }
   if (type === 'LIVE' && status === 'CANCELLED') {
     return {
       text: 'キャンセル済み',
@@ -58,7 +65,7 @@ export function formatLocalDateTime(isoString: string): string {
 export function getContentDateText(content: ContentResponse): string | null {
   const { type, status } = content
 
-  if (type === 'VIDEO' && status === 'ARCHIVED') {
+  if ((type === 'VIDEO' || type === 'SHORT') && status === 'ARCHIVED') {
     return content.publishedAt ? formatLocalDateTime(content.publishedAt) : null
   }
 
