@@ -5,9 +5,11 @@
 set -euo pipefail
 
 BACKUP_FILE=${1:?"バックアップファイルを指定してください (例: backup/20260331_120000_pre-migration.sql)"}
+POSTGRES_USER="${POSTGRES_USER:-mysubchs}"
+POSTGRES_DB="${POSTGRES_DB:-mysubchs}"
 
 if [ ! -f "$BACKUP_FILE" ]; then
-  echo "エラー: ファイルが見つかりません: $BACKUP_FILE"
+  echo "エラー: ファイルが見つかりません: $BACKUP_FILE" >&2
   exit 1
 fi
 
@@ -19,5 +21,5 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo "リストア開始: $BACKUP_FILE"
-docker compose exec -T db psql -U mysubchs -d mysubchs < "$BACKUP_FILE"
+docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$BACKUP_FILE"
 echo "完了。マイグレーション状態を確認してください: npx prisma migrate status"
