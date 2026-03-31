@@ -49,3 +49,6 @@ public/worker-*.js.map
 # Claude Code (local)
 .claude/settings.local.json
 .claude/worktrees/
+
+# DBバックアップ
+backup/
