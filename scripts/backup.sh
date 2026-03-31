@@ -17,6 +17,6 @@ TEMP_OUTPUT=$(mktemp)
 trap "rm -f '$TEMP_OUTPUT'" EXIT
 
 echo "バックアップ開始: $OUTPUT"
-docker compose exec -T db pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > "$TEMP_OUTPUT"
+docker compose exec -T db pg_dump --clean -U "$POSTGRES_USER" "$POSTGRES_DB" > "$TEMP_OUTPUT"
 mv "$TEMP_OUTPUT" "$OUTPUT"
 echo "完了: $OUTPUT"

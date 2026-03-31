@@ -21,5 +21,5 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo "リストア開始: $BACKUP_FILE"
-docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < "$BACKUP_FILE"
+docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" --single-transaction < "$BACKUP_FILE"
 echo "完了。マイグレーション状態を確認してください: npx prisma migrate status"

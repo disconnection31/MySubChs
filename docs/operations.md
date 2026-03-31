@@ -30,6 +30,8 @@
 
 出力例: `backup/20260331_120000_pre-migration.sql`
 
+> **Note**: バックアップには `DROP` 文が含まれる（`pg_dump --clean`）。既存データがある状態のDBへのリストアも安全に上書きできる。
+
 ---
 
 ## 2. DBマイグレーション手順
@@ -74,7 +76,7 @@ docker compose exec app npx prisma migrate status
 ./scripts/restore.sh backup/20260331_120000_pre-migration.sql
 ```
 
-確認プロンプトが表示されるので `yes` を入力して実行する。
+確認プロンプトが表示されるので `yes` を入力して実行する。リストアは単一トランザクションで実行されるため、途中でエラーが発生した場合は自動的にロールバックされる。
 
 ### リストア後の確認
 
