@@ -33,6 +33,10 @@ MySubChs is a personal web app for organizing YouTube subscriptions into custom 
 
 ## Implementation Rules
 
+### DB Migration
+When providing instructions that include running `prisma migrate`, always remind the developer
+to take a backup first using `docs/operations.md` procedures (`./scripts/backup.sh pre-migration`).
+
 ### External Dependency Values
 - **Never hardcode external dependency values**: Values derived from third-party service specifications (API limits, rate limits, quotas, etc.) must not be hardcoded inline. Define them as named constants in a dedicated config file (e.g., `src/lib/config.ts`) so they can be updated in one place.
 - Example: YouTube API daily quota (`10,000` units), warning threshold (`9,000` units) → define as `YOUTUBE_QUOTA_DAILY_LIMIT` and `YOUTUBE_QUOTA_WARNING_THRESHOLD` in config.
@@ -125,6 +129,7 @@ Other references:
 - `docs/integrations/youtube-auth.md` - Google OAuth flow, channel sync, Worker token management
 - `docs/integrations/youtube-polling.md` - BullMQ polling design, quota management, error handling
 - `docs/infrastructure.md` - Docker Compose, environment variables, AWS migration
+- `docs/operations.md` - DB backup and migration procedures
 - `docs/error-handling.md` - API error response format, error codes, logging policy
 - `ref/youtube-api.md` - YouTube Data API v3 quota/endpoint reference
 
