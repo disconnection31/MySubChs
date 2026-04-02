@@ -28,6 +28,7 @@ export type VideoDetail = {
   actualStartTime: string | null
   actualEndTime: string | null
   durationSeconds: number | null
+  thumbnailUrl: string | null
 }
 
 export interface PlatformAdapter {

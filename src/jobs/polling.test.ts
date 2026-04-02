@@ -52,6 +52,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -74,6 +75,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -94,6 +96,7 @@ describe('polling', () => {
         actualStartTime: '2026-03-22T11:05:00Z',
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -115,6 +118,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -135,6 +139,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: 600,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -156,6 +161,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: 30,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -175,6 +181,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: 60,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -192,6 +199,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: 61,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -209,6 +217,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineNewContentFields(detail, channelId, now)!
@@ -217,6 +226,42 @@ describe('polling', () => {
       expect(result.status).toBe(ContentStatus.ARCHIVED)
       expect(result.publishedAt).toBeNull()
       expect(result.contentAt).toEqual(now)
+    })
+
+    it('thumbnailUrl がある場合、結果に引き継ぐ', () => {
+      const detail: VideoDetail = {
+        platformContentId: 'vid-thumb',
+        title: 'Video with Thumbnail',
+        liveBroadcastContent: 'none',
+        publishedAt: '2026-03-20T08:00:00Z',
+        scheduledStartTime: null,
+        actualStartTime: null,
+        actualEndTime: null,
+        durationSeconds: 300,
+        thumbnailUrl: 'https://i.ytimg.com/vi/vid-thumb/mqdefault.jpg',
+      }
+
+      const result = determineNewContentFields(detail, channelId, now)!
+
+      expect(result.thumbnailUrl).toBe('https://i.ytimg.com/vi/vid-thumb/mqdefault.jpg')
+    })
+
+    it('thumbnailUrl が null の場合、結果も null', () => {
+      const detail: VideoDetail = {
+        platformContentId: 'vid-no-thumb',
+        title: 'Video without Thumbnail',
+        liveBroadcastContent: 'none',
+        publishedAt: '2026-03-20T08:00:00Z',
+        scheduledStartTime: null,
+        actualStartTime: null,
+        actualEndTime: null,
+        durationSeconds: 300,
+        thumbnailUrl: null,
+      }
+
+      const result = determineNewContentFields(detail, channelId, now)!
+
+      expect(result.thumbnailUrl).toBeNull()
     })
   })
 
@@ -248,6 +293,7 @@ describe('polling', () => {
         actualStartTime: '2026-03-22T10:05:00Z',
         actualEndTime: '2026-03-22T12:00:00Z',
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -269,6 +315,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -289,6 +336,7 @@ describe('polling', () => {
         actualStartTime: '2026-03-22T10:05:00Z',
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
@@ -325,6 +373,7 @@ describe('polling', () => {
         actualStartTime: '2026-03-22T10:02:00Z',
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -347,6 +396,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -369,6 +419,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -390,6 +441,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)
@@ -411,6 +463,7 @@ describe('polling', () => {
         actualStartTime: null,
         actualEndTime: null,
         durationSeconds: null,
+        thumbnailUrl: null,
       }
 
       const result = determineExistingUpcomingUpdate(detail, existing)

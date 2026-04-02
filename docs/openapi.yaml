@@ -150,6 +150,11 @@ components:
         url:
           type: string
           example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: サムネイル URL（YouTube: medium.url → default.url → null）
+          example: https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg
         channel:
           type: object
           description: チャンネル名・アイコンのインライン表示用

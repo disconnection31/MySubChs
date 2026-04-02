@@ -92,6 +92,7 @@ export type ContentResponse = {
   actualStartAt: string | null
   actualEndAt: string | null
   url: string
+  thumbnailUrl: string | null
   channel: ContentChannelResponse
   watchLater: WatchLaterResponse | null
   createdAt: string
