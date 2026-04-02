@@ -19,7 +19,8 @@
 
 import { PrismaClient } from '@prisma/client'
 
-const YOUTUBE_VIDEOS_MAX_RESULTS = 50
+import { YOUTUBE_VIDEOS_MAX_RESULTS } from '../src/lib/config'
+
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
 const prisma = new PrismaClient()

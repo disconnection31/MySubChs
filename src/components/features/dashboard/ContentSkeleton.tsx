@@ -6,7 +6,7 @@ export function ContentSkeleton() {
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="flex items-start gap-3 border-b px-4 py-3">
           {/* サムネイルスケルトン: PC のみ表示 */}
-          <Skeleton className="hidden md:block shrink-0 rounded" style={{ width: 120, height: 67 }} />
+          <Skeleton className="hidden md:block w-[120px] h-[67px] shrink-0 rounded" />
 
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <div className="flex items-center gap-2">

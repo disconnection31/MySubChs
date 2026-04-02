@@ -38,12 +38,10 @@ export function ContentItem({ content }: ContentItemProps) {
             width={120}
             height={67}
             className="rounded object-cover"
-            style={{ aspectRatio: '16/9' }}
           />
         ) : (
           <div
-            className="rounded bg-muted"
-            style={{ width: 120, height: 67 }}
+            className="w-[120px] h-[67px] rounded bg-muted"
             aria-hidden="true"
           />
         )}
