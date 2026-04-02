@@ -153,6 +153,16 @@ The `docs/` specs must be written so that Claude Code can implement them without
 4. **Confirm before creating or modifying specs**: When creating a new `docs/` file or making non-trivial edits to existing ones, always confirm the intended direction with the developer first.
 5. **Keep specs and code in sync**: When a spec change is decided during implementation, update the relevant `docs/` files in the same commit or PR as the code change. Never let specs and code diverge.
 
+### PR Review Response Policy
+
+When responding to PR review comments:
+
+1. **Do not blindly accept suggestions**: Reviewer comments are input, not instructions. Evaluate each comment on its merits.
+2. **Assess validity first**: For each comment, judge whether the concern is valid given the codebase context, specs, and design decisions.
+3. **Determine your own fix approach**: Even if the reviewer proposes a specific fix, independently decide the best implementation approach. The reviewer's suggestion may be suboptimal, incomplete, or based on incomplete context.
+4. **Communicate your reasoning**: If you disagree with a comment or choose a different approach than suggested, explain why before implementing.
+5. **Flag spec conflicts**: If acting on a review comment would conflict with `docs/` specs or `CLAUDE.md` rules, flag it explicitly rather than silently choosing one over the other.
+
 ### Git Workflow
 
 - **Feature branches**: Create a branch per feature, merge to main when complete.
