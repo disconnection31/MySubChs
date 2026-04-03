@@ -26,6 +26,7 @@ type ContentFields = {
   contentAt: Date
   url?: string
   durationSeconds: number | null
+  thumbnailUrl: string | null
 }
 
 type ExistingContent = {
@@ -77,6 +78,7 @@ export function determineNewContentFields(
       contentAt: scheduledStartAt,
       url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
       durationSeconds: null,
+      thumbnailUrl: detail.thumbnailUrl,
     }
   }
 
@@ -97,6 +99,7 @@ export function determineNewContentFields(
       contentAt: actualStartAt,
       url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
       durationSeconds: null,
+      thumbnailUrl: detail.thumbnailUrl,
     }
   }
 
@@ -115,6 +118,7 @@ export function determineNewContentFields(
     contentAt: publishedAt ?? now,
     url: `${YOUTUBE_CONTENT_URL_TEMPLATE}${platformContentId}`,
     durationSeconds: detail.durationSeconds,
+    thumbnailUrl: detail.thumbnailUrl,
   }
 }
 
@@ -444,6 +448,7 @@ export async function executePolling(
           contentAt: fields.contentAt,
           url: fields.url!,
           durationSeconds: fields.durationSeconds,
+          thumbnailUrl: fields.thumbnailUrl,
         },
         update: {
           title: fields.title,
@@ -454,6 +459,7 @@ export async function executePolling(
           actualEndAt: fields.actualEndAt,
           contentAt: fields.contentAt,
           durationSeconds: fields.durationSeconds,
+          thumbnailUrl: fields.thumbnailUrl,
         },
       }),
     )

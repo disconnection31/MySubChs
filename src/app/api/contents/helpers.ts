@@ -65,6 +65,7 @@ export function formatContent(
     actualStartAt: content.actualStartAt?.toISOString() ?? null,
     actualEndAt: content.actualEndAt?.toISOString() ?? null,
     url: content.url,
+    thumbnailUrl: content.thumbnailUrl,
     channel: {
       name: content.channel.name,
       iconUrl: content.channel.iconUrl,

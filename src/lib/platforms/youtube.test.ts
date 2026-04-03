@@ -318,6 +318,10 @@ describe('YouTubeAdapter', () => {
                 title: 'Video 1',
                 publishedAt: '2024-01-01T00:00:00Z',
                 liveBroadcastContent: 'none',
+                thumbnails: {
+                  medium: { url: 'https://i.ytimg.com/vi/vid1/mqdefault.jpg' },
+                  default: { url: 'https://i.ytimg.com/vi/vid1/default.jpg' },
+                },
               },
               liveStreamingDetails: {
                 scheduledStartTime: '2024-01-01T10:00:00Z',
@@ -344,6 +348,7 @@ describe('YouTubeAdapter', () => {
           actualStartTime: '2024-01-01T10:05:00Z',
           actualEndTime: '2024-01-01T11:00:00Z',
           durationSeconds: 630,
+          thumbnailUrl: 'https://i.ytimg.com/vi/vid1/mqdefault.jpg',
         },
       ])
       expect(mockFetch).toHaveBeenCalledTimes(1)
@@ -406,6 +411,53 @@ describe('YouTubeAdapter', () => {
       expect(result[0].actualStartTime).toBeNull()
       expect(result[0].actualEndTime).toBeNull()
       expect(result[0].durationSeconds).toBeNull()
+      expect(result[0].thumbnailUrl).toBeNull()
+    })
+
+    it('thumbnails.medium がない場合は default.url を使用する', async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          items: [
+            {
+              id: 'vid1',
+              snippet: {
+                title: 'Video 1',
+                publishedAt: '2024-01-01T00:00:00Z',
+                liveBroadcastContent: 'none',
+                thumbnails: {
+                  default: { url: 'https://i.ytimg.com/vi/vid1/default.jpg' },
+                },
+              },
+            },
+          ],
+        }),
+      )
+
+      const result = await adapter.getVideoDetails(['vid1'], ACCESS_TOKEN)
+
+      expect(result[0].thumbnailUrl).toBe('https://i.ytimg.com/vi/vid1/default.jpg')
+    })
+
+    it('thumbnails が undefined の場合 thumbnailUrl は null になる', async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          items: [
+            {
+              id: 'vid1',
+              snippet: {
+                title: 'Video 1',
+                publishedAt: '2024-01-01T00:00:00Z',
+                liveBroadcastContent: 'none',
+                // thumbnails なし
+              },
+            },
+          ],
+        }),
+      )
+
+      const result = await adapter.getVideoDetails(['vid1'], ACCESS_TOKEN)
+
+      expect(result[0].thumbnailUrl).toBeNull()
     })
   })
 

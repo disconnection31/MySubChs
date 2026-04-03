@@ -24,6 +24,7 @@ function makeContent(
     actualStartAt: null,
     actualEndAt: null,
     url: 'https://www.youtube.com/watch?v=yt-123',
+    thumbnailUrl: null,
     channel: { name: 'Test Channel', iconUrl: null },
     watchLater: null,
     createdAt: '2026-03-03T06:00:00Z',

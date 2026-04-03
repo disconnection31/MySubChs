@@ -20,6 +20,8 @@ function makeContent(overrides: Partial<Content> = {}): Content {
     actualEndAt: null,
     contentAt: new Date('2026-01-01T00:00:00.000Z'),
     url: 'https://www.youtube.com/watch?v=vid123',
+    thumbnailUrl: 'https://i.ytimg.com/vi/vid123/mqdefault.jpg',
+    durationSeconds: null,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,
@@ -79,6 +81,7 @@ describe('formatContent', () => {
       actualStartAt: null,
       actualEndAt: null,
       url: 'https://www.youtube.com/watch?v=vid123',
+      thumbnailUrl: 'https://i.ytimg.com/vi/vid123/mqdefault.jpg',
       channel: {
         name: 'Test Channel',
         iconUrl: 'https://example.com/icon.jpg',
@@ -130,6 +133,13 @@ describe('formatContent', () => {
     const result = formatContent(content, 'user-1', new Date())
 
     expect(result.channel.iconUrl).toBeNull()
+  })
+
+  it('thumbnailUrl が null の場合にも変換できる', () => {
+    const content = makeContentWithRelations({ thumbnailUrl: null })
+    const result = formatContent(content, 'user-1', new Date())
+
+    expect(result.thumbnailUrl).toBeNull()
   })
 })
 

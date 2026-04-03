@@ -99,6 +99,10 @@ type YouTubeVideoItem = {
     title: string
     publishedAt?: string
     liveBroadcastContent: 'none' | 'live' | 'upcoming'
+    thumbnails?: {
+      medium?: { url: string }
+      default?: { url: string }
+    }
   }
   liveStreamingDetails?: {
     scheduledStartTime?: string
@@ -318,6 +322,11 @@ export class YouTubeAdapter implements PlatformAdapter {
           durationSeconds: item.contentDetails?.duration
             ? parseISO8601Duration(item.contentDetails.duration)
             : null,
+          // snippet パートは既取得済みのため追加クォータコストなし
+          thumbnailUrl:
+            item.snippet.thumbnails?.medium?.url ??
+            item.snippet.thumbnails?.default?.url ??
+            null,
         })) ?? [],
     )
   }

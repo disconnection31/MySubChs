@@ -148,6 +148,7 @@ model Content {
   actualEndAt       DateTime?
   contentAt         DateTime // ソート専用キー（architecture.md §6 参照）
   url               String // コンテンツURL（不変）。INSERT 時にのみ設定
+  thumbnailUrl      String? // サムネイルURL（YouTube: medium.url → default.url → null）
   durationSeconds   Int? // 動画の長さ（秒）。ショート判定に使用。LIVE コンテンツは NULL
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
