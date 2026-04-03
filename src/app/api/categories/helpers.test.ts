@@ -121,13 +121,4 @@ describe('formatCategory', () => {
     expect(result).not.toHaveProperty('notificationSetting')
   })
 
-  it('notificationSettingがnullの場合、settingsがnullになる', () => {
-    const category = {
-      ...makeCategory(),
-      notificationSetting: null,
-    }
-    const result = formatCategory(category)
-
-    expect(result.settings).toBeNull()
-  })
 })

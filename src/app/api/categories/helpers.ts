@@ -2,8 +2,10 @@ import type { Category, NotificationSetting } from '@prisma/client'
 
 import type { CategoryResponse, NotificationSettingResponse } from '@/types/api'
 
+// Prisma's 1:1 relation include returns `T | null`, but notificationSetting
+// is always created alongside the category in a transaction, so it is never null at runtime.
 export type CategoryWithNotificationSetting = Category & {
-  notificationSetting: NotificationSetting | null
+  notificationSetting: NotificationSetting
 }
 
 /**
@@ -34,8 +36,6 @@ export function formatCategory(category: CategoryWithNotificationSetting): Categ
     sortOrder: category.sortOrder,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
-    settings: category.notificationSetting
-      ? formatNotificationSetting(category.notificationSetting)
-      : null,
+    settings: formatNotificationSetting(category.notificationSetting),
   }
 }

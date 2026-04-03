@@ -51,7 +51,7 @@ components:
           format: date-time
         settings:
           $ref: '#/components/schemas/NotificationSetting'
-      required: [id, name, sortOrder, createdAt, updatedAt]
+      required: [id, name, sortOrder, createdAt, updatedAt, settings]
 
     # --- Channel ---
     Channel:
