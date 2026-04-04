@@ -18,10 +18,8 @@ import { ChannelSkeleton } from './ChannelSkeleton'
 
 function buildGroups(
   channels: ChannelResponse[],
-  categories: CategoryResponse[],
+  sortedCategories: CategoryResponse[],
 ): GroupedChannels[] {
-  const sortedCategories = categories.slice().sort((a, b) => a.sortOrder - b.sortOrder)
-
   const channelsByCategory = new Map<string | null, ChannelResponse[]>()
   for (const channel of channels) {
     const key = channel.categoryId
@@ -93,8 +91,8 @@ export function ChannelsPage() {
   )
 
   const groups = useMemo(
-    () => (hasChannels ? buildGroups(channels, categories ?? []) : []),
-    [channels, categories, hasChannels],
+    () => (hasChannels ? buildGroups(channels, sortedCategories) : []),
+    [channels, sortedCategories, hasChannels],
   )
 
   const [collapsedState, setCollapsedState] = useState<Map<string, boolean>>(new Map())
@@ -112,7 +110,6 @@ export function ChannelsPage() {
     (categoryId: string | null) => {
       const key = categoryId ?? 'uncategorized'
 
-      // Auto-expand if collapsed
       setCollapsedState((prev) => {
         if (prev.get(key) === false) {
           const next = new Map(prev)
