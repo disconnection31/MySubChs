@@ -74,8 +74,8 @@ export function CategoryNav({
   return (
     <nav className="flex flex-col py-2">
       {categories.map((category) => {
-        const autoPollingEnabled = category.settings?.autoPollingEnabled ?? true
-        const pollingIntervalMinutes = category.settings?.pollingIntervalMinutes ?? null
+        const autoPollingEnabled = category.settings.autoPollingEnabled
+        const pollingIntervalMinutes = category.settings.pollingIntervalMinutes
 
         return (
           <button

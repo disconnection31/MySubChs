@@ -204,13 +204,11 @@ export function CategoryRow({ category, isDndDisabled, globalPollingInterval }: 
         </div>
 
         <CollapsibleContent>
-          {category.settings && (
-            <CategorySettings
-              categoryId={category.id}
-              settings={category.settings}
-              globalPollingInterval={globalPollingInterval}
-            />
-          )}
+          <CategorySettings
+            categoryId={category.id}
+            settings={category.settings}
+            globalPollingInterval={globalPollingInterval}
+          />
         </CollapsibleContent>
       </Collapsible>
 

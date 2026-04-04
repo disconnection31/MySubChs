@@ -47,7 +47,7 @@ export type CategoryResponse = {
   sortOrder: number
   createdAt: string
   updatedAt: string
-  settings: NotificationSettingResponse | null
+  settings: NotificationSettingResponse
 }
 
 // --- Channel ---

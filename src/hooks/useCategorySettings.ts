@@ -32,7 +32,7 @@ export function useCategorySettings() {
 
       if (previous) {
         const updated = previous.map((cat) => {
-          if (cat.id === categoryId && cat.settings) {
+          if (cat.id === categoryId) {
             return {
               ...cat,
               settings: {
