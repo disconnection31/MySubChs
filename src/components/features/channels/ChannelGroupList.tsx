@@ -14,7 +14,7 @@ type ChannelGroupListProps = {
   groups: GroupedChannels[]
   categories: CategoryResponse[]
   collapsedState: Map<string, boolean>
-  onToggleCollapse: (key: string) => void
+  onToggleCollapse: (key: string, open: boolean) => void
 }
 
 export function ChannelGroupList({
@@ -36,7 +36,7 @@ export function ChannelGroupList({
             channels={group.channels}
             categories={categories}
             isOpen={isOpen}
-            onOpenChange={() => onToggleCollapse(key)}
+            onOpenChange={(open) => onToggleCollapse(key, open)}
           />
         )
       })}

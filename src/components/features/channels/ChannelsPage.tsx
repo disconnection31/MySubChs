@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AlertCircle, Info, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -97,11 +98,10 @@ export function ChannelsPage() {
 
   const [collapsedState, setCollapsedState] = useState<Map<string, boolean>>(new Map())
 
-  const handleToggleCollapse = useCallback((key: string) => {
+  const handleToggleCollapse = useCallback((key: string, open: boolean) => {
     setCollapsedState((prev) => {
       const next = new Map(prev)
-      const current = next.get(key) !== false
-      next.set(key, !current)
+      next.set(key, open)
       return next
     })
   }, [])
@@ -110,22 +110,21 @@ export function ChannelsPage() {
     (categoryId: string | null) => {
       const key = categoryId ?? 'uncategorized'
 
-      setCollapsedState((prev) => {
-        if (prev.get(key) === false) {
-          const next = new Map(prev)
-          next.set(key, true)
-          return next
-        }
-        return prev
+      flushSync(() => {
+        setCollapsedState((prev) => {
+          if (prev.get(key) === false) {
+            const next = new Map(prev)
+            next.set(key, true)
+            return next
+          }
+          return prev
+        })
       })
 
-      // Scroll to the category group after a short delay to allow expand animation
-      setTimeout(() => {
-        const el = document.getElementById(`category-${key}`)
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' })
-        }
-      }, 50)
+      const el = document.getElementById(`category-${key}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' })
+      }
     },
     [],
   )
