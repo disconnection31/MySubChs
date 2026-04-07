@@ -4,60 +4,42 @@ import type { CategoryResponse, ChannelResponse } from '@/types/api'
 
 import { ChannelGroup } from './ChannelGroup'
 
-type ChannelGroupListProps = {
-  channels: ChannelResponse[]
-  categories: CategoryResponse[]
-}
-
-type GroupedChannels = {
+export type GroupedChannels = {
   categoryId: string | null
   categoryName: string
   channels: ChannelResponse[]
 }
 
-export function ChannelGroupList({ channels, categories }: ChannelGroupListProps) {
-  const sortedCategories = categories.slice().sort((a, b) => a.sortOrder - b.sortOrder)
+type ChannelGroupListProps = {
+  groups: GroupedChannels[]
+  categories: CategoryResponse[]
+  collapsedState: Map<string, boolean>
+  onToggleCollapse: (key: string, open: boolean) => void
+}
 
-  const channelsByCategory = new Map<string | null, ChannelResponse[]>()
-  for (const channel of channels) {
-    const key = channel.categoryId
-    const existing = channelsByCategory.get(key) ?? []
-    existing.push(channel)
-    channelsByCategory.set(key, existing)
-  }
-
-  const groups: GroupedChannels[] = []
-
-  for (const category of sortedCategories) {
-    const categoryChannels = channelsByCategory.get(category.id)
-    if (categoryChannels && categoryChannels.length > 0) {
-      groups.push({
-        categoryId: category.id,
-        categoryName: category.name,
-        channels: categoryChannels.sort((a, b) => a.name.localeCompare(b.name)),
-      })
-    }
-  }
-
-  const uncategorized = channelsByCategory.get(null)
-  if (uncategorized && uncategorized.length > 0) {
-    groups.push({
-      categoryId: null,
-      categoryName: '未分類',
-      channels: uncategorized.sort((a, b) => a.name.localeCompare(b.name)),
-    })
-  }
-
+export function ChannelGroupList({
+  groups,
+  categories,
+  collapsedState,
+  onToggleCollapse,
+}: ChannelGroupListProps) {
   return (
     <div className="space-y-6">
-      {groups.map((group) => (
-        <ChannelGroup
-          key={group.categoryId ?? 'uncategorized'}
-          categoryName={group.categoryName}
-          channels={group.channels}
-          categories={sortedCategories}
-        />
-      ))}
+      {groups.map((group) => {
+        const key = group.categoryId ?? 'uncategorized'
+        const isOpen = collapsedState.get(key) !== false
+        return (
+          <ChannelGroup
+            key={key}
+            categoryId={group.categoryId}
+            categoryName={group.categoryName}
+            channels={group.channels}
+            categories={categories}
+            isOpen={isOpen}
+            onOpenChange={(open) => onToggleCollapse(key, open)}
+          />
+        )
+      })}
     </div>
   )
 }

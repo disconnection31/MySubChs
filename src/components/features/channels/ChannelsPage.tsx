@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AlertCircle, Info, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -8,11 +9,50 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useCategories } from '@/hooks/useCategories'
 import { useChannels } from '@/hooks/useChannels'
+import type { CategoryResponse, ChannelResponse } from '@/types/api'
 
+import { CategoryNavMobile, CategoryNavSidebar } from './CategoryNav'
 import { ChannelEmptyState } from './ChannelEmptyState'
 import { ChannelFilter } from './ChannelFilter'
-import { ChannelGroupList } from './ChannelGroupList'
+import { type GroupedChannels, ChannelGroupList } from './ChannelGroupList'
 import { ChannelSkeleton } from './ChannelSkeleton'
+
+function buildGroups(
+  channels: ChannelResponse[],
+  sortedCategories: CategoryResponse[],
+): GroupedChannels[] {
+  const channelsByCategory = new Map<string | null, ChannelResponse[]>()
+  for (const channel of channels) {
+    const key = channel.categoryId
+    const existing = channelsByCategory.get(key) ?? []
+    existing.push(channel)
+    channelsByCategory.set(key, existing)
+  }
+
+  const groups: GroupedChannels[] = []
+
+  for (const category of sortedCategories) {
+    const categoryChannels = channelsByCategory.get(category.id)
+    if (categoryChannels && categoryChannels.length > 0) {
+      groups.push({
+        categoryId: category.id,
+        categoryName: category.name,
+        channels: categoryChannels.sort((a, b) => a.name.localeCompare(b.name)),
+      })
+    }
+  }
+
+  const uncategorized = channelsByCategory.get(null)
+  if (uncategorized && uncategorized.length > 0) {
+    groups.push({
+      categoryId: null,
+      categoryName: '未分類',
+      channels: uncategorized.sort((a, b) => a.name.localeCompare(b.name)),
+    })
+  }
+
+  return groups
+}
 
 export function ChannelsPage() {
   const searchParams = useSearchParams()
@@ -34,6 +74,7 @@ export function ChannelsPage() {
     },
     [searchParams, router, pathname],
   )
+
   const {
     data: channels,
     isLoading: isChannelsLoading,
@@ -45,8 +86,53 @@ export function ChannelsPage() {
   const isLoading = isChannelsLoading || isCategoriesLoading
   const hasChannels = channels && channels.length > 0
 
+  const sortedCategories = useMemo(
+    () => (categories ?? []).slice().sort((a, b) => a.sortOrder - b.sortOrder),
+    [categories],
+  )
+
+  const groups = useMemo(
+    () => (hasChannels ? buildGroups(channels, sortedCategories) : []),
+    [channels, sortedCategories, hasChannels],
+  )
+
+  const [collapsedState, setCollapsedState] = useState<Map<string, boolean>>(new Map())
+
+  const handleToggleCollapse = useCallback((key: string, open: boolean) => {
+    setCollapsedState((prev) => {
+      const next = new Map(prev)
+      next.set(key, open)
+      return next
+    })
+  }, [])
+
+  const handleSelectCategory = useCallback(
+    (categoryId: string | null) => {
+      const key = categoryId ?? 'uncategorized'
+
+      flushSync(() => {
+        setCollapsedState((prev) => {
+          if (prev.get(key) === false) {
+            const next = new Map(prev)
+            next.set(key, true)
+            return next
+          }
+          return prev
+        })
+      })
+
+      const el = document.getElementById(`category-${key}`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' })
+      }
+    },
+    [],
+  )
+
+  const showNav = groups.length > 1
+
   return (
-    <main className="mx-auto max-w-3xl p-4">
+    <main className="mx-auto max-w-4xl p-4">
       <h1 className="mb-4 text-2xl font-bold">チャンネル管理</h1>
 
       <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
@@ -77,7 +163,28 @@ export function ChannelsPage() {
           </Button>
         </div>
       ) : hasChannels ? (
-        <ChannelGroupList channels={channels} categories={categories ?? []} />
+        <div className="flex gap-6">
+          {showNav && (
+            <CategoryNavSidebar
+              groups={groups}
+              onSelectCategory={handleSelectCategory}
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <ChannelGroupList
+              groups={groups}
+              categories={sortedCategories}
+              collapsedState={collapsedState}
+              onToggleCollapse={handleToggleCollapse}
+            />
+          </div>
+          {showNav && (
+            <CategoryNavMobile
+              groups={groups}
+              onSelectCategory={handleSelectCategory}
+            />
+          )}
+        </div>
       ) : (
         <ChannelEmptyState isActive={isActive} />
       )}
