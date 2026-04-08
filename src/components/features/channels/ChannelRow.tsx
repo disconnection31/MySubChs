@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { useUpdateChannel } from '@/hooks/useChannels'
 import { YOUTUBE_CHANNEL_URL_TEMPLATE } from '@/lib/config'
+import { cn } from '@/lib/utils'
 import type { CategoryResponse, ChannelResponse } from '@/types/api'
 
 import { ChannelDeactivateDialog } from './ChannelDeactivateDialog'
@@ -64,7 +65,12 @@ export function ChannelRow({ channel, categories }: ChannelRowProps) {
           <User className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
-      <span className="truncate text-sm font-medium group-hover/link:text-blue-400 transition-colors">
+      <span
+        className={cn(
+          'truncate text-sm font-medium transition-colors',
+          channelUrl && 'group-hover/link:text-blue-400',
+        )}
+      >
         {channel.name}
       </span>
     </>
@@ -73,20 +79,18 @@ export function ChannelRow({ channel, categories }: ChannelRowProps) {
   return (
     <>
       <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:gap-3 hover:bg-blue-950/30 transition-colors">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          {channelUrl ? (
-            <a
-              href={channelUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group/link flex min-w-0 flex-1 items-center gap-3"
-            >
-              {iconAndName}
-            </a>
-          ) : (
-            <div className="flex min-w-0 flex-1 items-center gap-3">{iconAndName}</div>
-          )}
-        </div>
+        {channelUrl ? (
+          <a
+            href={channelUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group/link flex min-w-0 flex-1 items-center gap-3"
+          >
+            {iconAndName}
+          </a>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-3">{iconAndName}</div>
+        )}
 
         {channel.isActive ? (
           <div className="flex items-center gap-2 md:shrink-0">
