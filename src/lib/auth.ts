@@ -68,6 +68,8 @@ export const authOptions: NextAuthOptions = {
           const isRecordNotFound =
             error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025'
           if (!isRecordNotFound) {
+            // DB保存に失敗してもサインイン自体はブロックしない。
+            // ただしトークンが古いままになるため、次のポーリングで再び token_error が発生する可能性がある。
             console.error('[auth] Failed to update account tokens', error)
           }
         }
