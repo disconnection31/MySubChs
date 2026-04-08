@@ -1,3 +1,4 @@
+import { GOOGLE_PROVIDER } from '@/lib/config'
 import { prisma } from '@/lib/db'
 
 // Google OAuth Token Endpoint
@@ -24,7 +25,7 @@ export async function ensureValidToken(userId: string): Promise<TokenRefreshResu
   const account = await prisma.account.findFirst({
     where: {
       userId,
-      provider: 'google',
+      provider: GOOGLE_PROVIDER,
     },
   })
 

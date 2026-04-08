@@ -2,7 +2,9 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import type { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 
-import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES, SETUP_JOB_NAME } from '@/lib/config'
+import { Prisma } from '@prisma/client'
+
+import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES, GOOGLE_PROVIDER, SETUP_JOB_NAME } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { queue } from '@/lib/queue'
 
@@ -41,7 +43,7 @@ export const authOptions: NextAuthOptions = {
       // signIn コールバックで明示的にトークンを保存する必要がある。
       // 初回ログイン時は Account がまだ存在しないため P2025 (RecordNotFound) が発生するが、
       // try-catch で握りつぶしてサインインを継続する（初回は PrismaAdapter が linkAccount で保存する）
-      if (account.provider === 'google' && account.providerAccountId) {
+      if (account.provider === GOOGLE_PROVIDER && account.providerAccountId) {
         try {
           // refresh_token が返されなかった場合（Google が省略するケース）は既存値を維持する
           const tokenData = {
@@ -61,8 +63,13 @@ export const authOptions: NextAuthOptions = {
             },
             data: tokenData,
           })
-        } catch {
+        } catch (error) {
           // 初回ログイン時は Account が未存在のため P2025 が発生する（無視して継続）
+          const isRecordNotFound =
+            error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025'
+          if (!isRecordNotFound) {
+            console.error('[auth] Failed to update account tokens', error)
+          }
         }
       }
 

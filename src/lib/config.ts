@@ -8,6 +8,9 @@ export function isDevBypassAuth(): boolean {
   return process.env.DEV_BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production'
 }
 
+// OAuth プロバイダー
+export const GOOGLE_PROVIDER = 'google'
+
 // UserSetting のデフォルト値
 export const DEFAULT_POLLING_INTERVAL_MINUTES = 30
 export const DEFAULT_CONTENT_RETENTION_DAYS = 60
