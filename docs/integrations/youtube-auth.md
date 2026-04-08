@@ -86,7 +86,11 @@ Worker の YouTube API 呼び出しフロー:
 3. ユーザーが「再認証する」ボタンをクリック
    → NextAuth の signIn("google") フローを開始（既存の Google OAuth フローを再利用）
 4. 再認証成功
-   → NextAuth の signIn コールバックで Account.token_error を NULL にリセットする
+   → NextAuth の signIn コールバックで以下を実行する:
+     - Account.token_error を NULL にリセットする
+     - Google から返された新しい access_token / expires_at / token_type を DB に保存する
+     - refresh_token が返された場合のみ refresh_token も更新する（Google が省略した場合は既存値を維持）
+   ※ NextAuth の PrismaAdapter は既存 Account に対して linkAccount を呼ばないため、signIn コールバックで明示的にトークンを保存する必要がある
 5. 設定画面の tokenStatus が "valid" に戻り、バナーが非表示になる
 ```
 
