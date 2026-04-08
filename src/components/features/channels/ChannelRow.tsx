@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useUpdateChannel } from '@/hooks/useChannels'
+import { YOUTUBE_CHANNEL_URL_TEMPLATE } from '@/lib/config'
+import { cn } from '@/lib/utils'
 import type { CategoryResponse, ChannelResponse } from '@/types/api'
 
 import { ChannelDeactivateDialog } from './ChannelDeactivateDialog'
@@ -24,6 +26,15 @@ type ChannelRowProps = {
 }
 
 const UNCATEGORIZED_VALUE = '__uncategorized__'
+
+function getChannelUrl(platform: string, platformChannelId: string): string | null {
+  switch (platform) {
+    case 'youtube':
+      return `${YOUTUBE_CHANNEL_URL_TEMPLATE}${platformChannelId}`
+    default:
+      return null
+  }
+}
 
 export function ChannelRow({ channel, categories }: ChannelRowProps) {
   const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false)
@@ -37,26 +48,49 @@ export function ChannelRow({ channel, categories }: ChannelRowProps) {
     })
   }
 
+  const channelUrl = getChannelUrl(channel.platform, channel.platformChannelId)
+
+  const iconAndName = (
+    <>
+      {channel.iconUrl ? (
+        <Image
+          src={channel.iconUrl}
+          alt={channel.name}
+          width={32}
+          height={32}
+          className="shrink-0 rounded-full"
+        />
+      ) : (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+          <User className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
+      <span
+        className={cn(
+          'truncate text-sm font-medium transition-colors',
+          channelUrl && 'group-hover/link:text-blue-400',
+        )}
+      >
+        {channel.name}
+      </span>
+    </>
+  )
+
   return (
     <>
-      <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          {channel.iconUrl ? (
-            <Image
-              src={channel.iconUrl}
-              alt={channel.name}
-              width={32}
-              height={32}
-              className="shrink-0 rounded-full"
-            />
-          ) : (
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-              <User className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-
-          <span className="truncate text-sm font-medium">{channel.name}</span>
-        </div>
+      <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:gap-3 hover:bg-blue-950/30 transition-colors">
+        {channelUrl ? (
+          <a
+            href={channelUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group/link flex min-w-0 flex-1 items-center gap-3"
+          >
+            {iconAndName}
+          </a>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-center gap-3">{iconAndName}</div>
+        )}
 
         {channel.isActive ? (
           <div className="flex items-center gap-2 md:shrink-0">
