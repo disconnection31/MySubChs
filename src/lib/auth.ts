@@ -35,12 +35,23 @@ export const authOptions: NextAuthOptions = {
         return false
       }
 
-      // 再認証時に token_error を NULL にリセットする
-      // （youtube-auth.md §4 の仕様: 再認証成功時に token_error を NULL にリセット）
+      // 再認証時に token_error を NULL にリセットし、新しいトークンを DB に保存する
+      // （youtube-auth.md §4 の仕様: 再認証成功時に token_error を NULL にリセットし、トークンを更新）
+      // NextAuth の PrismaAdapter は既存 Account に対して linkAccount を呼ばないため、
+      // signIn コールバックで明示的にトークンを保存する必要がある。
       // 初回ログイン時は Account がまだ存在しないため P2025 (RecordNotFound) が発生するが、
-      // try-catch で握りつぶしてサインインを継続する
+      // try-catch で握りつぶしてサインインを継続する（初回は PrismaAdapter が linkAccount で保存する）
       if (account.provider === 'google' && account.providerAccountId) {
         try {
+          // refresh_token が返されなかった場合（Google が省略するケース）は既存値を維持する
+          const tokenData = {
+            token_error: null,
+            access_token: account.access_token,
+            expires_at: account.expires_at,
+            token_type: account.token_type,
+            ...(account.refresh_token && { refresh_token: account.refresh_token }),
+          }
+
           await prisma.account.update({
             where: {
               provider_providerAccountId: {
@@ -48,7 +59,7 @@ export const authOptions: NextAuthOptions = {
                 providerAccountId: account.providerAccountId,
               },
             },
-            data: { token_error: null },
+            data: tokenData,
           })
         } catch {
           // 初回ログイン時は Account が未存在のため P2025 が発生する（無視して継続）
