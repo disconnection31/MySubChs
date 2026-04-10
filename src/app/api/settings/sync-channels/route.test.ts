@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { type DeepMockProxy, mockDeep, mockReset } from 'vitest-mock-extended'
+import { type DeepMockProxy, mockReset } from 'vitest-mock-extended'
+
+import { YouTubeAuthError, YouTubeQuotaExceededError } from '@/lib/platforms/youtube'
 
 type MockPrisma = DeepMockProxy<PrismaClient>
 
@@ -95,8 +97,6 @@ describe('POST /api/settings/sync-channels', () => {
       token_error: null,
     } as never)
 
-    // Import the error class to throw a proper instance
-    const { YouTubeAuthError } = await import('@/lib/platforms/youtube')
     mockSyncChannels.mockRejectedValue(new YouTubeAuthError('Token invalid'))
 
     const response = await POST()
@@ -113,7 +113,6 @@ describe('POST /api/settings/sync-channels', () => {
       token_error: null,
     } as never)
 
-    const { YouTubeQuotaExceededError } = await import('@/lib/platforms/youtube')
     mockSyncChannels.mockRejectedValue(new YouTubeQuotaExceededError())
 
     const response = await POST()

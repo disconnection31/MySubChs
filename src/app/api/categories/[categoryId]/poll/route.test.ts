@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { type DeepMockProxy, mockDeep, mockReset } from 'vitest-mock-extended'
+import { type DeepMockProxy, mockReset } from 'vitest-mock-extended'
 
 import { MANUAL_POLLING_COOLDOWN_SECONDS } from '@/lib/config'
 import { buildRequest } from '@/tests/helpers/request-helper'
