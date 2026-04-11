@@ -1001,8 +1001,30 @@ paths:
       responses:
         '200':
           description: 送信成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sent:
+                    type: integer
+                    description: 送信成功件数
+                  failed:
+                    type: integer
+                    description: 送信失敗件数
+                required: [sent, failed]
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: サーバー内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: サーバー内部エラーが発生しました
 
   # ============================================================
   # Settings
@@ -1089,6 +1111,35 @@ paths:
                 required: [added, restored, deactivated, updated]
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          description: サーバー内部エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: サーバー内部エラーが発生しました
+        '503':
+          description: OAuthトークン無効またはYouTube APIエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tokenInvalid:
+                  summary: OAuthトークン未取得・失効時
+                  value:
+                    error:
+                      code: OAUTH_TOKEN_INVALID
+                      message: OAuthトークンが無効です。再認証してください
+                quotaExceeded:
+                  summary: YouTube APIクォータ超過時
+                  value:
+                    error:
+                      code: YOUTUBE_API_ERROR
+                      message: YouTube APIのクォータが超過しました。明日以降に再度お試しください
 
 # ===========================================================
 # Tags（ドキュメント表示順）
