@@ -62,6 +62,17 @@ describe('POST /api/settings/sync-channels', () => {
     expect(body.error.code).toBe('UNAUTHORIZED')
   })
 
+  it('Google アカウントが見つからない場合 503 OAUTH_TOKEN_INVALID を返す', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+    prismaMock.account.findFirst.mockResolvedValue(null)
+
+    const response = await POST()
+
+    expect(response.status).toBe(503)
+    const body = await response.json()
+    expect(body.error.code).toBe('OAUTH_TOKEN_INVALID')
+  })
+
   it('access_token が null の場合 503 OAUTH_TOKEN_INVALID を返す', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.account.findFirst.mockResolvedValue({

@@ -122,6 +122,24 @@ describe('GET /api/categories/[categoryId]/poll/status', () => {
     expect(body.cooldownRemaining).toBe(120)
   })
 
+  it('failed ジョブの場合 status: failed を返す', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+    prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    mockQueueGetJob.mockResolvedValue({
+      getState: vi.fn().mockResolvedValue('failed'),
+    })
+    mockRedisTtl.mockResolvedValue(-2)
+
+    const request = buildRequest('/api/categories/cat-1/poll/status')
+
+    const response = await GET(request, context)
+
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.status).toBe('failed')
+    expect(body.cooldownRemaining).toBe(0)
+  })
+
   it('completed ジョブの場合 status: completed を返す', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)

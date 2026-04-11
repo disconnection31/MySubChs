@@ -59,24 +59,10 @@ describe('DELETE /api/notifications/subscriptions/[subscriptionId]', () => {
     expect(body.error.code).toBe('UNAUTHORIZED')
   })
 
-  it('存在しないサブスクリプションの場合 404 を返す', async () => {
+  it('存在しない or 他ユーザーのサブスクリプションの場合 404 を返す', async () => {
+    // deleteMany は where: { id, userId } で所有権チェックを兼ねるため、
+    // 「IDが存在しない」と「他ユーザーの所有」は同じ count: 0 で区別されない
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
-    prismaMock.pushSubscription.deleteMany.mockResolvedValue({ count: 0 } as never)
-
-    const request = buildRequest('/api/notifications/subscriptions/sub-1', {
-      method: 'DELETE',
-    })
-
-    const response = await DELETE(request, context)
-
-    expect(response.status).toBe(404)
-    const body = await response.json()
-    expect(body.error.code).toBe('PUSH_SUBSCRIPTION_NOT_FOUND')
-  })
-
-  it('他ユーザーのサブスクリプションの場合 404 を返す', async () => {
-    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
-    // deleteMany with userId filter returns count 0 for other user's subscription
     prismaMock.pushSubscription.deleteMany.mockResolvedValue({ count: 0 } as never)
 
     const request = buildRequest('/api/notifications/subscriptions/sub-1', {
