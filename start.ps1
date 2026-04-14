@@ -22,6 +22,12 @@ try {
 }
 
 # --- Phase 2: git pull ---
+# main ブランチ以外で pull すると意図しないマージコミットが発生するため、main ブランチでのみ実行
+$currentBranch = (git rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
+if ($currentBranch -ne "main") {
+    Write-Host "エラー: 現在のブランチは '$currentBranch' です。このスクリプトは main ブランチで実行してください。" -ForegroundColor Red
+    exit 1
+}
 Write-Host "最新コードを取得中 (git pull origin main)..." -ForegroundColor Cyan
 $gitOutput = git pull origin main 2>&1 | Out-String
 if ($LASTEXITCODE -ne 0) {
@@ -83,10 +89,24 @@ Write-Host "db 準備完了。" -ForegroundColor Green
 # --- Phase 5: マイグレーション確認 ---
 Write-Host "マイグレーション状態を確認中..." -ForegroundColor Cyan
 
-# .env の DATABASE_URL は Docker 内部ホスト名 (db) を指すため、ホストからは localhost に書き換える
+# .env から DATABASE_URL を読み取り、ホスト部分 '@db:' のみ '@localhost:' に差し替える
+# (資格情報・DB名のハードコードを避け、.env 変更に追従するため)
+$envFile = Join-Path $PSScriptRoot ".env"
+if (-not (Test-Path $envFile)) {
+    Write-Host "エラー: .env ファイルが見つかりません ($envFile)。" -ForegroundColor Red
+    exit 1
+}
+$envDbUrlLine = Get-Content $envFile | Where-Object { $_ -match '^\s*DATABASE_URL\s*=' } | Select-Object -First 1
+if (-not $envDbUrlLine) {
+    Write-Host "エラー: .env に DATABASE_URL が定義されていません。" -ForegroundColor Red
+    exit 1
+}
+$envDbUrl = ($envDbUrlLine -replace '^\s*DATABASE_URL\s*=\s*', '').Trim('"').Trim("'")
+$hostDbUrl = $envDbUrl -replace '@db:', '@localhost:'
+
 $originalDbUrlSet = Test-Path Env:\DATABASE_URL
 $originalDbUrl = if ($originalDbUrlSet) { $env:DATABASE_URL } else { $null }
-$env:DATABASE_URL = "postgresql://mysubchs:mysubchs@localhost:5432/mysubchs"
+$env:DATABASE_URL = $hostDbUrl
 
 $migrateOutput = ""
 $migrateExitCode = 0
@@ -101,8 +121,9 @@ try {
     }
 }
 
-# "Database schema is up to date" が出力に含まれていなければ未適用ありとみなす（prisma自体の失敗も安全側扱い）
-$isUpToDate = ($migrateExitCode -eq 0) -and ($migrateOutput -match "Database schema is up to date")
+# prisma migrate status は未適用マイグレーションがあれば非0で終了する。
+# その他の失敗（DB接続エラー等）も非0で終了するため、安全側に倒して未適用扱いとする。
+$isUpToDate = ($migrateExitCode -eq 0)
 
 # --- Phase 6: 起動 or マイグレーション案内 ---
 if (-not $isUpToDate) {
