@@ -41,6 +41,9 @@ to take a backup first using `docs/operations.md` procedures (`./scripts/backup.
 - **Never hardcode external dependency values**: Values derived from third-party service specifications (API limits, rate limits, quotas, etc.) must not be hardcoded inline. Define them as named constants in a dedicated config file (e.g., `src/lib/config.ts`) so they can be updated in one place.
 - Example: YouTube API daily quota (`10,000` units), warning threshold (`9,000` units) → define as `YOUTUBE_QUOTA_DAILY_LIMIT` and `YOUTUBE_QUOTA_WARNING_THRESHOLD` in config.
 
+### Bash Commands
+- **cdプレフィックス禁止**: `cd <project-dir> && <cmd>` のようにプロジェクトディレクトリへの移動を前置しないこと。作業ディレクトリは常にプロジェクトルートである。
+
 ### YouTube API Quota
 
 YouTube Data API v3 provides 10,000 units/day free. This is a hard limit with no automatic reset until next day UTC. Exceeding it causes all API calls to fail for the rest of the day.
