@@ -158,8 +158,7 @@ describe('worker', () => {
 
       expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith('key-legacy')
       expect(infoSpy).toHaveBeenCalledWith(
-        '[worker] Removed unknown orphan job',
-        'auto-poll:cat-1',
+        '[worker] Removed unknown orphan job auto-poll:cat-1',
       )
 
       infoSpy.mockRestore()
@@ -175,8 +174,7 @@ describe('worker', () => {
 
       expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith('key-foo')
       expect(infoSpy).toHaveBeenCalledWith(
-        '[worker] Removed unknown orphan job',
-        'foo-bar',
+        '[worker] Removed unknown orphan job foo-bar',
       )
 
       infoSpy.mockRestore()
@@ -202,8 +200,7 @@ describe('worker', () => {
       // 未知形式は新ロジックで削除される
       expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith('key-legacy')
       expect(infoSpy).toHaveBeenCalledWith(
-        '[worker] Removed unknown orphan job',
-        'auto-poll:legacy',
+        '[worker] Removed unknown orphan job auto-poll:legacy',
       )
 
       // DB 非存在の auto-poll は既存ロジックで削除される

@@ -50,6 +50,8 @@ type JobData = AutoPollJobData | ManualPollJobData | SetupJobData
  * - `setup` / `setup-*`: 初回ログイン時のチャンネル同期
  *   - Issue #157 に `setup-{userId}` と記載があるが、実装は `SETUP_JOB_NAME='setup'` 固定。
  *     歴史的に `setup-*` 形式が使われた可能性を考慮し両対応する。
+ *     TODO: 旧形式 `setup-*` が残存していないことを確認できたら `setup-` プレフィックス判定は削除する。
+ *           残したままだと `setup-v2` のような新ジョブが意図せず既知扱いとなり削除されないリスクがある。
  *
  * NOTE: `manual-poll-*` は one-shot ジョブであり repeatable には本来登録されないため、
  *       ここでは既知リストに含めない。誤って repeatable 登録された場合は孤児として削除される。
@@ -110,12 +112,15 @@ export async function reconcileRepeatableJobs(): Promise<void> {
   for (const job of existingJobs) {
     if (!isKnownJobName(job.name)) {
       await queue.removeRepeatableByKey(job.key)
-      console.info('[worker] Removed unknown orphan job', job.name)
+      console.info(`[worker] Removed unknown orphan job ${job.name}`)
     }
   }
 
+  // 以降の処理では未知ジョブを除いた既知ジョブのみを対象とする
+  const knownJobs = existingJobs.filter((j) => isKnownJobName(j.name))
+
   const existingJobMap = new Map(
-    existingJobs
+    knownJobs
       .filter((j) => j.name.startsWith(AUTO_POLL_JOB_PREFIX))
       .map((j) => [j.name, j]),
   )
@@ -177,7 +182,7 @@ export async function reconcileRepeatableJobs(): Promise<void> {
 
   // ContentCleanup: cron ベースの Repeatable Job を登録
   // §15: attempts=3, backoff exponential 5分
-  const existingCleanupJob = existingJobs.find((j) => j.name === CONTENT_CLEANUP_JOB_NAME)
+  const existingCleanupJob = knownJobs.find((j) => j.name === CONTENT_CLEANUP_JOB_NAME)
   if (!existingCleanupJob) {
     await queue.add(
       CONTENT_CLEANUP_JOB_NAME,
@@ -196,7 +201,7 @@ export async function reconcileRepeatableJobs(): Promise<void> {
 
   // WatchLaterCleanup: cron ベースの Repeatable Job を登録
   // §15: attempts=3, backoff exponential 5分
-  const existingWatchLaterCleanupJob = existingJobs.find((j) => j.name === WATCHLATER_CLEANUP_JOB_NAME)
+  const existingWatchLaterCleanupJob = knownJobs.find((j) => j.name === WATCHLATER_CLEANUP_JOB_NAME)
   if (!existingWatchLaterCleanupJob) {
     await queue.add(
       WATCHLATER_CLEANUP_JOB_NAME,
