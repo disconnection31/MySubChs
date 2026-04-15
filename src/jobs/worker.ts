@@ -40,7 +40,30 @@ type JobData = AutoPollJobData | ManualPollJobData | SetupJobData
 
 // ---- Self-healing (§4): Reconcile BullMQ repeatable jobs with DB state ----
 
-async function reconcileRepeatableJobs(): Promise<void> {
+/**
+ * 与えられたジョブ名が既知のジョブパターンに一致するかを判定する。
+ *
+ * 既知パターン:
+ * - `auto-poll-*`: カテゴリ単位の自動ポーリング
+ * - `content-cleanup`: コンテンツクリーンアップ（完全一致）
+ * - `watchlater-cleanup`: Watch Laterクリーンアップ（完全一致）
+ * - `setup` / `setup-*`: 初回ログイン時のチャンネル同期
+ *   - Issue #157 に `setup-{userId}` と記載があるが、実装は `SETUP_JOB_NAME='setup'` 固定。
+ *     歴史的に `setup-*` 形式が使われた可能性を考慮し両対応する。
+ *
+ * NOTE: `manual-poll-*` は one-shot ジョブであり repeatable には本来登録されないため、
+ *       ここでは既知リストに含めない。誤って repeatable 登録された場合は孤児として削除される。
+ */
+export function isKnownJobName(name: string): boolean {
+  if (name.startsWith(AUTO_POLL_JOB_PREFIX)) return true
+  if (name === CONTENT_CLEANUP_JOB_NAME) return true
+  if (name === WATCHLATER_CLEANUP_JOB_NAME) return true
+  if (name === SETUP_JOB_NAME) return true
+  if (name.startsWith(`${SETUP_JOB_NAME}-`)) return true
+  return false
+}
+
+export async function reconcileRepeatableJobs(): Promise<void> {
   console.info('[worker] Starting repeatable job reconciliation...')
 
   // 1. DB から全カテゴリの設定を取得
@@ -79,6 +102,18 @@ async function reconcileRepeatableJobs(): Promise<void> {
 
   // 2. 既存の Repeatable Jobs を取得
   const existingJobs = await queue.getRepeatableJobs()
+
+  // 2a. 未知のジョブ名（プレフィックス変更等による旧形式残留）を孤児として削除する (Issue #157)
+  // 既知のジョブ名パターンに一致しない repeatable ジョブは、ジョブ名の変更や
+  // リファクタリングの結果 Redis に取り残された旧形式である可能性が高い。
+  // 放置するとポーリングが正常に動作しないため、起動時に除去する。
+  for (const job of existingJobs) {
+    if (!isKnownJobName(job.name)) {
+      await queue.removeRepeatableByKey(job.key)
+      console.info('[worker] Removed unknown orphan job', job.name)
+    }
+  }
+
   const existingJobMap = new Map(
     existingJobs
       .filter((j) => j.name.startsWith(AUTO_POLL_JOB_PREFIX))
@@ -332,7 +367,11 @@ async function main(): Promise<void> {
   console.info('[worker] Worker is ready and listening for jobs')
 }
 
-main().catch((err) => {
-  console.error(`[worker] Fatal error: ${err.message}`)
-  process.exit(1)
-})
+// テスト環境では main() を自動実行しない（Vitest が `VITEST` を自動で設定する）。
+// これにより `reconcileRepeatableJobs` などの named export を副作用なくテストできる。
+if (!process.env.VITEST) {
+  main().catch((err) => {
+    console.error(`[worker] Fatal error: ${err.message}`)
+    process.exit(1)
+  })
+}
