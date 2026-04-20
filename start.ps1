@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # start.ps1 - MySubChs 開発環境起動スクリプト
 #
 # 処理フロー:
