@@ -2,7 +2,13 @@
 
 import { AlertTriangle, ExternalLink } from 'lucide-react'
 
+import { GCP_QUOTA_CONSOLE_URL_TEMPLATE } from '@/lib/config'
 import type { UserSettingsResponse } from '@/types/api'
+
+const GCP_PROJECT_ID = process.env.NEXT_PUBLIC_GCP_PROJECT_ID
+const QUOTA_CONSOLE_URL = GCP_PROJECT_ID
+  ? `${GCP_QUOTA_CONSOLE_URL_TEMPLATE}${encodeURIComponent(GCP_PROJECT_ID)}`
+  : null
 
 type QuotaWarningProps = {
   settings: UserSettingsResponse | undefined
@@ -15,20 +21,16 @@ export function QuotaWarning({ settings }: QuotaWarningProps) {
 
   const { estimatedDailyQuota, quotaDailyLimit, quotaWarningThreshold } = settings
   const isOverThreshold = estimatedDailyQuota > quotaWarningThreshold
-  const gcpProjectId = process.env.NEXT_PUBLIC_GCP_PROJECT_ID
-  const quotaConsoleUrl = gcpProjectId
-    ? `https://console.cloud.google.com/iam-admin/quotas?project=${encodeURIComponent(gcpProjectId)}`
-    : null
 
   return (
     <div className="mb-4 space-y-2">
       <p className="text-sm text-muted-foreground">
         推定1日クォータ使用量: {estimatedDailyQuota.toLocaleString()} / {quotaDailyLimit.toLocaleString()} units
-        {quotaConsoleUrl && (
+        {QUOTA_CONSOLE_URL && (
           <>
             {' · '}
             <a
-              href={quotaConsoleUrl}
+              href={QUOTA_CONSOLE_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Google Cloud Console のクォータページを別タブで開く"
