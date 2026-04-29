@@ -63,6 +63,16 @@
 
 カテゴリのポーリング間隔を変更した場合、PATCH 成功後に `GET /api/settings` を再フェッチし、サーバーが再計算した `estimatedDailyQuota` で警告表示を更新する。フロントエンドはクォータの再計算を行わない。
 
+### 実際の使用量確認リンク
+
+推定値はアプリ内で算出したものであり YouTube API 側の実使用量とは一致しないため、Google Cloud Console のクォータページへの外部リンクを併設する。
+
+- 推定値の近く（同一行の中点区切り、またはレイアウト上難しければ直下 `<p>`）に「実際の使用量を確認」テキストリンクを外部リンクアイコン（`lucide-react` の `ExternalLink`）付きで表示する
+- リンク先: `https://console.cloud.google.com/iam-admin/quotas?project={NEXT_PUBLIC_GCP_PROJECT_ID}`
+- 環境変数 `NEXT_PUBLIC_GCP_PROJECT_ID` が未設定の場合はリンク全体を非表示にする（URL 空でエラーにしない）
+- 別タブで開く（`target="_blank"` + `rel="noopener noreferrer"`）
+- 表示条件は警告表示条件とは独立し、環境変数があれば警告の有無に関わらず常時表示する
+
 ---
 
 ## 4. ヘッダー

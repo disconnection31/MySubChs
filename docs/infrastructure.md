@@ -119,6 +119,9 @@ VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=  # VAPID_PUBLIC_KEY と同じ値を設定する。Next.js の NEXT_PUBLIC_ プレフィックスによりブラウザ（フロントエンド）から参照可能になる。秘密情報ではないため公開して問題ない。
 
+# GCP Console（クォータ確認リンク用、オプション）
+NEXT_PUBLIC_GCP_PROJECT_ID=  # カテゴリ管理画面の「実際の使用量を確認」リンク先に使用する Google Cloud プロジェクトID。未設定時はリンク自体が非表示になる。秘密情報ではない（Google Cloud Console の URL に露出する値と同等）。
+
 # UIプレビューモード（開発環境専用、本番では無効）
 # DEV_BYPASS_AUTH=true
 ```

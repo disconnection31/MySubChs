@@ -89,6 +89,9 @@ export const YOUTUBE_CONTENT_URL_TEMPLATE = 'https://www.youtube.com/watch?v='
 // YouTube チャンネル URL テンプレート
 export const YOUTUBE_CHANNEL_URL_TEMPLATE = 'https://www.youtube.com/channel/'
 
+// GCP Console クォータ確認ページ URL テンプレート
+export const GCP_QUOTA_CONSOLE_URL_TEMPLATE = 'https://console.cloud.google.com/iam-admin/quotas?project='
+
 // ショート動画の判定閾値（秒）。この値以下の動画をSHORTとして分類する
 export const SHORT_DURATION_THRESHOLD_SECONDS = 60
 
