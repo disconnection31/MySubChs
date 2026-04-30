@@ -1,3 +1,4 @@
+import type { ContentStatus } from '@prisma/client'
 import { getServerSession, type Session } from 'next-auth'
 
 import { authOptions } from '@/lib/auth'
@@ -66,6 +67,15 @@ export const isValidContentRetentionDays = makeAllowedValuesGuard(VALID_CONTENT_
 
 /** WatchLater 自動失効時間値が有効値（VALID_AUTO_EXPIRE_HOURS）に含まれるか検証する型ガード */
 export const isValidAutoExpireHours = makeAllowedValuesGuard(VALID_AUTO_EXPIRE_HOURS)
+
+/**
+ * Content.status の値が ContentStatus enum に含まれるか検証する型ガード。
+ * Prisma 生成 enum の値を直接 import するとテスト環境で .env がロードされてしまうため、
+ * リテラル配列で値を保持する（`@/lib/config` の VALID_* と同じ方針）。
+ */
+const VALID_CONTENT_STATUSES = ['UPCOMING', 'LIVE', 'ARCHIVED', 'CANCELLED'] as const satisfies readonly ContentStatus[]
+
+export const isValidContentStatus = makeAllowedValuesGuard(VALID_CONTENT_STATUSES)
 
 /**
  * カーソル情報を Base64 エンコードされた文字列に変換する。

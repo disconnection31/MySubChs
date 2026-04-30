@@ -80,8 +80,9 @@
 
 | エラーコード | HTTP | 発生条件 |
 |---|---|---|
-| `CONTENT_NOT_FOUND` | 404 | 指定IDのコンテンツが存在しない |
+| `CONTENT_NOT_FOUND` | 404 | 指定IDのコンテンツが存在しない、または他ユーザー所有（`PATCH /api/contents/{id}` で発生） |
 | `INVALID_CURSOR` | 400 | カーソルのBase64デコード・JSON解析に失敗 |
+| `VALIDATION_ERROR` | 400 | `PATCH /api/contents/{id}` の `status` が欠落 / enum 外 / リクエストボディが不正 JSON |
 
 ### 2.5 後で見る（`/api/watch-later`）
 

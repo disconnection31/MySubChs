@@ -1,5 +1,18 @@
 import type { ContentResponse } from '@/types/api'
 
+type ContentStatus = ContentResponse['status']
+
+/**
+ * ステータス手動変更メニューの選択肢。
+ * ContentItem のケバブメニューから利用する。
+ */
+export const STATUS_OPTIONS: ReadonlyArray<{ value: ContentStatus; label: string }> = [
+  { value: 'UPCOMING', label: '配信予定' },
+  { value: 'LIVE', label: '配信中' },
+  { value: 'ARCHIVED', label: 'アーカイブ' },
+  { value: 'CANCELLED', label: 'キャンセル済み' },
+]
+
 type StatusBadgeConfig = {
   text: string
   className: string

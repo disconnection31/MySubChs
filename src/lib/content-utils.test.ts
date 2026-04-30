@@ -23,6 +23,7 @@ function makeContent(
     scheduledStartAt: null,
     actualStartAt: null,
     actualEndAt: null,
+    statusManuallySetAt: null,
     url: 'https://www.youtube.com/watch?v=yt-123',
     thumbnailUrl: null,
     channel: { name: 'Test Channel', iconUrl: null },
