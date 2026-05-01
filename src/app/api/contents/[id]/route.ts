@@ -27,18 +27,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params
 
-    // 所有権チェック: 他ユーザー所有のコンテンツも 404 として扱う
-    const existing = await prisma.content.findFirst({
-      where: {
-        id,
-        channel: { userId: auth.userId },
-      },
-      select: { id: true },
-    })
-    if (!existing) {
-      return errorResponse(ErrorCode.CONTENT_NOT_FOUND, 'コンテンツが見つかりません', 404)
-    }
-
+    // 入力検証を先に済ませて、不正リクエストでは DB クエリを発生させない
     let body: unknown
     try {
       body = await request.json()
@@ -58,6 +47,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         'status は UPCOMING / LIVE / ARCHIVED / CANCELLED のいずれかを指定してください',
         400,
       )
+    }
+
+    // 所有権チェック: 他ユーザー所有のコンテンツも 404 として扱う
+    const existing = await prisma.content.findFirst({
+      where: {
+        id,
+        channel: { userId: auth.userId },
+      },
+      select: { id: true },
+    })
+    if (!existing) {
+      return errorResponse(ErrorCode.CONTENT_NOT_FOUND, 'コンテンツが見つかりません', 404)
     }
 
     const now = new Date()

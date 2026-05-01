@@ -183,7 +183,7 @@ export function determineExistingLiveUpdate(
     }
   }
 
-  // Still live — update title only
+  // Still live — update display metadata (title / thumbnailUrl) only
   return { title: detail.title, thumbnailUrl: detail.thumbnailUrl }
 }
 

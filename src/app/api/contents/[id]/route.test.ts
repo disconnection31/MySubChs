@@ -110,7 +110,7 @@ describe('PATCH /api/contents/[id]', () => {
     expect(body.error.code).toBe('CONTENT_NOT_FOUND')
   })
 
-  it('他ユーザー所有のコンテンツの場合 404 を返す', async () => {
+  it('他ユーザー所有のコンテンツの場合 404 を返す（findFirst の where に所有権 filter が含まれること）', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     // findFirst は { id, channel: { userId } } 条件で検索するため、他ユーザー所有なら null
     prismaMock.content.findFirst.mockResolvedValue(null)
@@ -127,11 +127,20 @@ describe('PATCH /api/contents/[id]', () => {
     expect(response.status).toBe(404)
     const body = await response.json()
     expect(body.error.code).toBe('CONTENT_NOT_FOUND')
+
+    // 所有権 filter が外れるデグレを検出するため、findFirst に渡された where 条件を検証
+    expect(prismaMock.content.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'content-1',
+          channel: { userId: 'user-1' },
+        }),
+      }),
+    )
   })
 
-  it('status 欠落で 400 を返す', async () => {
+  it('status 欠落で 400 を返す（DB クエリは発生しない）', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
-    prismaMock.content.findFirst.mockResolvedValue({ id: 'content-1' } as never)
 
     const request = buildRequest('/api/contents/content-1', {
       method: 'PATCH',
@@ -145,11 +154,11 @@ describe('PATCH /api/contents/[id]', () => {
     expect(response.status).toBe(400)
     const body = await response.json()
     expect(body.error.code).toBe('VALIDATION_ERROR')
+    expect(prismaMock.content.findFirst).not.toHaveBeenCalled()
   })
 
-  it('status が enum 外の値の場合 400 を返す', async () => {
+  it('status が enum 外の値の場合 400 を返す（DB クエリは発生しない）', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
-    prismaMock.content.findFirst.mockResolvedValue({ id: 'content-1' } as never)
 
     const request = buildRequest('/api/contents/content-1', {
       method: 'PATCH',
@@ -163,6 +172,7 @@ describe('PATCH /api/contents/[id]', () => {
     expect(response.status).toBe(400)
     const body = await response.json()
     expect(body.error.code).toBe('VALIDATION_ERROR')
+    expect(prismaMock.content.findFirst).not.toHaveBeenCalled()
   })
 
   it('正常系: status と statusManuallySetAt が更新され、contentAt は変更されない', async () => {
