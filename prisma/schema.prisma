@@ -147,6 +147,7 @@ model Content {
   actualStartAt     DateTime?
   actualEndAt       DateTime?
   contentAt         DateTime // ソート専用キー（architecture.md §6 参照）
+  statusManuallySetAt DateTime? // ユーザーが status を手動変更した時刻。NOT NULL = 手動制御中（ポーリングで status / contentAt / 配信時刻系を上書きしない）
   url               String // コンテンツURL（不変）。INSERT 時にのみ設定
   thumbnailUrl      String? // サムネイルURL（YouTube: medium.url → default.url → null）
   durationSeconds   Int? // 動画の長さ（秒）。ショート判定に使用。LIVE コンテンツは NULL

@@ -64,6 +64,7 @@ export function formatContent(
     scheduledStartAt: content.scheduledStartAt?.toISOString() ?? null,
     actualStartAt: content.actualStartAt?.toISOString() ?? null,
     actualEndAt: content.actualEndAt?.toISOString() ?? null,
+    statusManuallySetAt: content.statusManuallySetAt?.toISOString() ?? null,
     url: content.url,
     thumbnailUrl: content.thumbnailUrl,
     channel: {

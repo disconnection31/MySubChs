@@ -91,6 +91,7 @@ export type ContentResponse = {
   scheduledStartAt: string | null
   actualStartAt: string | null
   actualEndAt: string | null
+  statusManuallySetAt: string | null
   url: string
   thumbnailUrl: string | null
   channel: ContentChannelResponse

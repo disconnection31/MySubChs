@@ -38,6 +38,39 @@ type ExistingContent = {
   status: ContentStatus
   scheduledStartAt: Date | null
   actualStartAt: Date | null
+  statusManuallySetAt: Date | null
+}
+
+/**
+ * 手動制御中（statusManuallySetAt IS NOT NULL）のコンテンツに対して、
+ * status / contentAt / 配信時刻系フィールドをポーリング更新から除外する。
+ * タイトル・サムネイル等の表示メタデータのみを残す。
+ */
+export function stripStatusFields<T extends Partial<ContentFields>>(
+  fields: T,
+): Partial<ContentFields> {
+  const {
+    status: _status,
+    contentAt: _contentAt,
+    actualStartAt: _actualStartAt,
+    actualEndAt: _actualEndAt,
+    scheduledStartAt: _scheduledStartAt,
+    ...rest
+  } = fields
+  return rest
+}
+
+/**
+ * 既存コンテンツへのポーリング更新フィールドに、手動制御の有無を反映する。
+ * - 手動制御中なら stripStatusFields でメタデータのみに絞る
+ * - 残るフィールドが空なら null を返し、呼び出し側で update をスキップさせる
+ */
+function applyManualControl<T extends Partial<ContentFields>>(
+  fields: T,
+  isManuallyControlled: boolean,
+): Partial<ContentFields> | null {
+  const result = isManuallyControlled ? stripStatusFields(fields) : fields
+  return Object.keys(result).length === 0 ? null : result
 }
 
 // ---- Helper: Calculate TTL until next UTC midnight ----
@@ -139,14 +172,19 @@ export function determineExistingLiveUpdate(
         status: ContentStatus.ARCHIVED,
         actualEndAt: new Date(detail.actualEndTime),
         title: detail.title,
+        thumbnailUrl: detail.thumbnailUrl,
       }
     }
     // none + no actualEndTime → CANCELLED
-    return { status: ContentStatus.CANCELLED, title: detail.title }
+    return {
+      status: ContentStatus.CANCELLED,
+      title: detail.title,
+      thumbnailUrl: detail.thumbnailUrl,
+    }
   }
 
-  // Still live — update title only
-  return { title: detail.title }
+  // Still live — update display metadata (title / thumbnailUrl) only
+  return { title: detail.title, thumbnailUrl: detail.thumbnailUrl }
 }
 
 // ---- Helper: Determine update fields for existing UPCOMING (scheduledStartAt <= now) ----
@@ -169,6 +207,7 @@ export function determineExistingUpcomingUpdate(
       actualStartAt,
       contentAt: actualStartAt,
       title: detail.title,
+      thumbnailUrl: detail.thumbnailUrl,
     }
   }
 
@@ -181,11 +220,16 @@ export function determineExistingUpcomingUpdate(
       scheduledStartAt,
       contentAt: scheduledStartAt ?? undefined,
       title: detail.title,
+      thumbnailUrl: detail.thumbnailUrl,
     }
   }
 
   // liveBroadcastContent === 'none' → CANCELLED
-  return { status: ContentStatus.CANCELLED, title: detail.title }
+  return {
+    status: ContentStatus.CANCELLED,
+    title: detail.title,
+    thumbnailUrl: detail.thumbnailUrl,
+  }
 }
 
 // ---- Main polling logic ----
@@ -329,6 +373,7 @@ export async function executePolling(
       status: true,
       scheduledStartAt: true,
       actualStartAt: true,
+      statusManuallySetAt: true,
     },
   })
 
@@ -468,7 +513,10 @@ export async function executePolling(
   // Process existing LIVE content
   for (const existing of existingLiveContents) {
     const detail = videoDetailMap.get(existing.platformContentId)
-    const updateFields = determineExistingLiveUpdate(detail, existing)
+    const rawUpdate = determineExistingLiveUpdate(detail, existing)
+    if (!rawUpdate) continue
+
+    const updateFields = applyManualControl(rawUpdate, existing.statusManuallySetAt !== null)
     if (!updateFields) continue
 
     dbOperations.push(
@@ -482,17 +530,22 @@ export async function executePolling(
   // Process existing UPCOMING (scheduledStartAt <= now) content
   for (const existing of existingUpcomingContents) {
     const detail = videoDetailMap.get(existing.platformContentId)
-    const updateFields = determineExistingUpcomingUpdate(detail, existing)
-    if (!updateFields) continue
+    const rawUpdate = determineExistingUpcomingUpdate(detail, existing)
+    if (!rawUpdate) continue
 
-    // Collect UPCOMING → LIVE transitions for notification dispatch
-    if (updateFields.status === ContentStatus.LIVE && detail) {
+    const isManuallyControlled = existing.statusManuallySetAt !== null
+
+    // 手動制御中のコンテンツは LIVE 遷移通知をスキップ
+    if (!isManuallyControlled && rawUpdate.status === ContentStatus.LIVE && detail) {
       notificationLiveTransitions.push({
         platformContentId: existing.platformContentId,
         channelId: existing.channelId,
         title: detail.title,
       })
     }
+
+    const updateFields = applyManualControl(rawUpdate, isManuallyControlled)
+    if (!updateFields) continue
 
     dbOperations.push(
       prisma.content.update({
