@@ -7,6 +7,7 @@ import {
   determineNewContentFields,
   determineExistingLiveUpdate,
   determineExistingUpcomingUpdate,
+  stripStatusFields,
 } from './polling'
 
 describe('polling', () => {
@@ -275,6 +276,7 @@ describe('polling', () => {
       status: ContentStatus.LIVE,
       scheduledStartAt: new Date('2026-03-22T10:00:00Z'),
       actualStartAt: new Date('2026-03-22T10:05:00Z'),
+      statusManuallySetAt: null,
     }
 
     it('detail not found → CANCELLED', () => {
@@ -302,6 +304,7 @@ describe('polling', () => {
         status: ContentStatus.ARCHIVED,
         actualEndAt: new Date('2026-03-22T12:00:00Z'),
         title: 'Stream Ended',
+        thumbnailUrl: null,
       })
     })
 
@@ -323,10 +326,11 @@ describe('polling', () => {
       expect(result).toEqual({
         status: ContentStatus.CANCELLED,
         title: 'Stream Gone',
+        thumbnailUrl: null,
       })
     })
 
-    it('still live → title update only', () => {
+    it('still live → title and thumbnailUrl update', () => {
       const detail: VideoDetail = {
         platformContentId: 'vid-1',
         title: 'Updated Title',
@@ -336,12 +340,15 @@ describe('polling', () => {
         actualStartTime: '2026-03-22T10:05:00Z',
         actualEndTime: null,
         durationSeconds: null,
-        thumbnailUrl: null,
+        thumbnailUrl: 'https://i.ytimg.com/vi/vid-1/mqdefault.jpg',
       }
 
       const result = determineExistingLiveUpdate(detail, existing)
 
-      expect(result).toEqual({ title: 'Updated Title' })
+      expect(result).toEqual({
+        title: 'Updated Title',
+        thumbnailUrl: 'https://i.ytimg.com/vi/vid-1/mqdefault.jpg',
+      })
     })
   })
 
@@ -355,6 +362,7 @@ describe('polling', () => {
       status: ContentStatus.UPCOMING,
       scheduledStartAt: new Date('2026-03-22T10:00:00Z'),
       actualStartAt: null,
+      statusManuallySetAt: null,
     }
 
     it('detail not found → CANCELLED', () => {
@@ -383,6 +391,7 @@ describe('polling', () => {
         actualStartAt: new Date('2026-03-22T10:02:00Z'),
         contentAt: new Date('2026-03-22T10:02:00Z'),
         title: 'Now Live!',
+        thumbnailUrl: null,
       })
     })
 
@@ -406,6 +415,7 @@ describe('polling', () => {
         actualStartAt: new Date('2026-03-22T10:00:00Z'),
         contentAt: new Date('2026-03-22T10:00:00Z'),
         title: 'Now Live!',
+        thumbnailUrl: null,
       })
     })
 
@@ -428,6 +438,7 @@ describe('polling', () => {
         scheduledStartAt: new Date('2026-03-23T14:00:00Z'),
         contentAt: new Date('2026-03-23T14:00:00Z'),
         title: 'Postponed Stream',
+        thumbnailUrl: null,
       })
     })
 
@@ -450,6 +461,7 @@ describe('polling', () => {
         scheduledStartAt: new Date('2026-03-22T10:00:00Z'),
         contentAt: new Date('2026-03-22T10:00:00Z'),
         title: 'Postponed Stream',
+        thumbnailUrl: null,
       })
     })
 
@@ -471,7 +483,44 @@ describe('polling', () => {
       expect(result).toEqual({
         status: ContentStatus.CANCELLED,
         title: 'Cancelled Stream',
+        thumbnailUrl: null,
       })
+    })
+  })
+
+  describe('stripStatusFields', () => {
+    it('status / contentAt / 配信時刻系を除去し、title / thumbnailUrl は残す', () => {
+      const result = stripStatusFields({
+        status: ContentStatus.ARCHIVED,
+        contentAt: new Date('2026-03-22T12:00:00Z'),
+        actualStartAt: new Date('2026-03-22T10:00:00Z'),
+        actualEndAt: new Date('2026-03-22T12:00:00Z'),
+        scheduledStartAt: new Date('2026-03-22T10:00:00Z'),
+        title: 'New Title',
+        thumbnailUrl: 'https://i.ytimg.com/vi/x/mqdefault.jpg',
+      })
+
+      expect(result).toEqual({
+        title: 'New Title',
+        thumbnailUrl: 'https://i.ytimg.com/vi/x/mqdefault.jpg',
+      })
+    })
+
+    it('対象フィールドが含まれていない場合はそのまま返す', () => {
+      const result = stripStatusFields({
+        title: 'Same Title',
+      })
+
+      expect(result).toEqual({ title: 'Same Title' })
+    })
+
+    it('対象フィールドのみの場合は空オブジェクトになる', () => {
+      const result = stripStatusFields({
+        status: ContentStatus.LIVE,
+        contentAt: new Date('2026-03-22T10:00:00Z'),
+      })
+
+      expect(result).toEqual({})
     })
   })
 })

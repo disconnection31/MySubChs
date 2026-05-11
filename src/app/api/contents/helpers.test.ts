@@ -19,6 +19,7 @@ function makeContent(overrides: Partial<Content> = {}): Content {
     actualStartAt: null,
     actualEndAt: null,
     contentAt: new Date('2026-01-01T00:00:00.000Z'),
+    statusManuallySetAt: null,
     url: 'https://www.youtube.com/watch?v=vid123',
     thumbnailUrl: 'https://i.ytimg.com/vi/vid123/mqdefault.jpg',
     durationSeconds: null,
@@ -80,6 +81,7 @@ describe('formatContent', () => {
       scheduledStartAt: null,
       actualStartAt: null,
       actualEndAt: null,
+      statusManuallySetAt: null,
       url: 'https://www.youtube.com/watch?v=vid123',
       thumbnailUrl: 'https://i.ytimg.com/vi/vid123/mqdefault.jpg',
       channel: {

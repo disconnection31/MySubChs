@@ -147,6 +147,13 @@ components:
           format: date-time
           nullable: true
           description: 配信終了時刻
+        statusManuallySetAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            ユーザーが status を手動変更した時刻。null = 自動管理（ポーリングで status / contentAt / 配信時刻系を上書き）、
+            NOT NULL = 手動制御中（ポーリングは title / thumbnailUrl 等のみ更新する）
         url:
           type: string
           example: https://www.youtube.com/watch?v=dQw4w9WgXcQ
@@ -879,6 +886,50 @@ paths:
                 required: [data, meta]
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /contents/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: updateContentStatus
+      summary: コンテンツのステータスを手動変更
+      description: >
+        コンテンツの `status` をユーザーが手動で変更する。
+
+        - 全ステータス間の遷移を許可する（UI 側で遷移制約は設けない）
+        - 成功時、サーバーは `statusManuallySetAt = now()` を設定する
+        - `contentAt` および配信時刻系（`actualStartAt` / `actualEndAt` / `scheduledStartAt`）は変更しない
+        - 以後のポーリングは `statusManuallySetAt IS NOT NULL` の間、status / contentAt / 配信時刻系を上書きしない
+      tags: [contents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [UPCOMING, LIVE, ARCHIVED, CANCELLED]
+              required: [status]
+      responses:
+        '200':
+          description: 更新後のコンテンツ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Content'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ============================================================
   # Watch Later

@@ -1,11 +1,20 @@
 'use client'
 
-import { Bookmark, BookmarkCheck, Loader2 } from 'lucide-react'
+import { Bookmark, BookmarkCheck, Check, Loader2, MoreVertical } from 'lucide-react'
 import Image from 'next/image'
 
 import { Button } from '@/components/ui/button'
-import { getContentDateText } from '@/lib/content-utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useUpdateContentStatus } from '@/hooks/useUpdateContentStatus'
 import { useWatchLater } from '@/hooks/useWatchLater'
+import { getContentDateText, STATUS_OPTIONS } from '@/lib/content-utils'
 import type { ContentResponse } from '@/types/api'
 
 import { StatusBadge } from './StatusBadge'
@@ -16,6 +25,7 @@ type ContentItemProps = {
 
 export function ContentItem({ content }: ContentItemProps) {
   const watchLaterMutation = useWatchLater()
+  const updateStatusMutation = useUpdateContentStatus()
   const isWatchLater = content.watchLater !== null
   const dateText = getContentDateText(content)
 
@@ -24,6 +34,15 @@ export function ContentItem({ content }: ContentItemProps) {
     watchLaterMutation.mutate({
       contentId: content.id,
       isCurrentlyWatchLater: isWatchLater,
+    })
+  }
+
+  const handleSelectStatus = (status: ContentResponse['status']) => {
+    if (updateStatusMutation.isPending) return
+    if (status === content.status) return
+    updateStatusMutation.mutate({
+      contentId: content.id,
+      status,
     })
   }
 
@@ -74,6 +93,45 @@ export function ContentItem({ content }: ContentItemProps) {
               <Bookmark className="h-4 w-4" />
             )}
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 shrink-0 md:h-9 md:w-9"
+                disabled={updateStatusMutation.isPending}
+                aria-label="ステータスを変更"
+              >
+                {updateStatusMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MoreVertical className="h-4 w-4" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>ステータスを変更</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {STATUS_OPTIONS.map((option) => {
+                const isCurrent = option.value === content.status
+                return (
+                  <DropdownMenuItem
+                    key={option.value}
+                    disabled={isCurrent || updateStatusMutation.isPending}
+                    onSelect={() => handleSelectStatus(option.value)}
+                    className="gap-2"
+                  >
+                    {isCurrent ? (
+                      <Check className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <span className="w-4" aria-hidden="true" />
+                    )}
+                    {option.label}
+                  </DropdownMenuItem>
+                )
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {/* チャンネルアイコン: PC・SP 共通 */}
