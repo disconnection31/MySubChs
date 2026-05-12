@@ -21,17 +21,34 @@ export const STATUS_FILTER_VALUES = ['UPCOMING', 'LIVE', 'ARCHIVED'] as const
 
 export type ContentStatusFilter = (typeof STATUS_FILTER_VALUES)[number]
 
-export const STATUS_FILTER_OPTIONS = STATUS_OPTIONS.filter(
-  (o): o is { value: ContentStatusFilter; label: string } => o.value !== 'CANCELLED',
-)
+/**
+ * STATUS_FILTER_VALUES を SSoT として STATUS_OPTIONS からラベルを引く。
+ * STATUS_OPTIONS に新値が追加されたが STATUS_FILTER_VALUES を更新し忘れた場合でも、
+ * 派生先の OPTIONS には未対応値が混入しない（型述語で narrow するだけだと runtime 不整合のリスクが残る）。
+ */
+export const STATUS_FILTER_OPTIONS: ReadonlyArray<{
+  value: ContentStatusFilter
+  label: string
+}> = STATUS_FILTER_VALUES.map((value) => {
+  const opt = STATUS_OPTIONS.find((o) => o.value === value)
+  if (!opt) {
+    throw new Error(`STATUS_OPTIONS に ${value} のエントリがありません`)
+  }
+  return { value, label: opt.label }
+})
+
+export function isContentStatusFilter(value: string): value is ContentStatusFilter {
+  return (STATUS_FILTER_VALUES as readonly string[]).includes(value)
+}
 
 /**
  * 任意の文字列配列を ContentStatusFilter[] に正規化する。
- * 無効値を除外し、`STATUS_FILTER_VALUES` の宣言順に並べ替える。
+ * 各値を trim した上で無効値を除外し、`STATUS_FILTER_VALUES` の宣言順に並べ替える。
  * URL / queryKey を安定化させるため、入力順序に関わらず同じ結果を返す。
  */
 export function normalizeStatusFilter(values: readonly string[]): ContentStatusFilter[] {
-  return STATUS_FILTER_VALUES.filter((v) => values.includes(v))
+  const trimmed = values.map((v) => v.trim())
+  return STATUS_FILTER_VALUES.filter((v) => trimmed.includes(v))
 }
 
 /**

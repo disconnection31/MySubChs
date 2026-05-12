@@ -41,7 +41,7 @@ export function ContentFilterPanel({
   return (
     <div className="flex flex-col gap-3">
       <section className="flex flex-col gap-2">
-        <p className="text-sm font-semibold">ステータス</p>
+        <h3 className="text-sm font-semibold">ステータス</h3>
         <div className="flex flex-col gap-2">
           {STATUS_FILTER_OPTIONS.map((option) => {
             const id = `filter-status-${option.value}`
@@ -69,7 +69,7 @@ export function ContentFilterPanel({
       <div className="h-px bg-border" aria-hidden="true" />
 
       <section className="flex flex-col gap-2">
-        <p className="text-sm font-semibold">後で見る</p>
+        <h3 className="text-sm font-semibold">後で見る</h3>
         <label
           htmlFor="filter-watch-later-only"
           className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm"
@@ -86,7 +86,7 @@ export function ContentFilterPanel({
       <div className="h-px bg-border" aria-hidden="true" />
 
       <section className="flex flex-col gap-2">
-        <p className="text-sm font-semibold">キャンセル済み</p>
+        <h3 className="text-sm font-semibold">キャンセル済み</h3>
         <label
           htmlFor="filter-include-cancelled"
           className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm"

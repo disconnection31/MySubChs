@@ -63,12 +63,19 @@ export function ContentHeader({
               variant={activeFilterCount > 0 ? 'default' : 'outline'}
               size="sm"
               className="shrink-0"
-              aria-label="フィルタを開く"
+              aria-label={
+                activeFilterCount > 0
+                  ? `フィルタを開く（${activeFilterCount}件適用中）`
+                  : 'フィルタを開く'
+              }
             >
               <Filter className="mr-1 h-4 w-4" />
               フィルタ
               {activeFilterCount > 0 && (
-                <span className="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs font-medium">
+                <span
+                  aria-hidden="true"
+                  className="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs font-medium"
+                >
                   {activeFilterCount}
                 </span>
               )}

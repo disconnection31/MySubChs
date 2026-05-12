@@ -221,6 +221,36 @@ describe('GET /api/contents', () => {
       expect(findManyCall?.where).toMatchObject({ status: { not: 'CANCELLED' } })
     })
 
+    it('status=,, （区切り文字のみ）は未指定扱いで 200', async () => {
+      mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+      prismaMock.channel.findMany.mockResolvedValue([{ id: 'ch-1' }] as never)
+      prismaMock.content.findMany.mockResolvedValue([] as never)
+
+      const request = buildRequest('/api/contents', {
+        searchParams: { categoryId: 'cat-1', status: ',,' },
+      })
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      const findManyCall = prismaMock.content.findMany.mock.calls[0]?.[0]
+      expect(findManyCall?.where).toMatchObject({ status: { not: 'CANCELLED' } })
+    })
+
+    it('status に重複した値（LIVE,LIVE）を指定しても 200 で in: [LIVE] になる', async () => {
+      mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+      prismaMock.channel.findMany.mockResolvedValue([{ id: 'ch-1' }] as never)
+      prismaMock.content.findMany.mockResolvedValue([] as never)
+
+      const request = buildRequest('/api/contents', {
+        searchParams: { categoryId: 'cat-1', status: 'LIVE,LIVE' },
+      })
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      const findManyCall = prismaMock.content.findMany.mock.calls[0]?.[0]
+      expect(findManyCall?.where).toMatchObject({ status: { in: ['LIVE'] } })
+    })
+
     it('status 指定時は includeCancelled=false の影響を受けず in:[...] が優先される', async () => {
       mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
       prismaMock.channel.findMany.mockResolvedValue([{ id: 'ch-1' }] as never)

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { decodeCursor, getAuthenticatedSession } from '@/lib/api-helpers'
 import { DEFAULT_CONTENTS_LIMIT, MAX_CONTENTS_LIMIT } from '@/lib/config'
 import {
+  isContentStatusFilter,
   normalizeStatusFilter,
   STATUS_FILTER_VALUES,
   type ContentStatusFilter,
@@ -85,9 +86,7 @@ export async function GET(request: NextRequest) {
           400,
         )
       }
-      const invalid = rawValues.filter(
-        (v) => !(STATUS_FILTER_VALUES as readonly string[]).includes(v),
-      )
+      const invalid = rawValues.filter((v) => !isContentStatusFilter(v))
       if (invalid.length > 0) {
         return errorResponse(
           ErrorCode.VALIDATION_ERROR,
