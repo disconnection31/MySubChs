@@ -869,6 +869,17 @@ paths:
             type: boolean
             default: false
           description: true の場合 status=CANCELLED のコンテンツも含む
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: >
+            ステータスフィルタ。`UPCOMING` / `LIVE` / `ARCHIVED` のいずれかをカンマ区切りで複数指定可能
+            （例: `status=LIVE,UPCOMING`）。
+
+            - 未指定または空文字列の場合はステータスで絞り込まない（現状通り）
+            - `CANCELLED` の指定は不可。指定時は 400 VALIDATION_ERROR を返す（`CANCELLED` を含めたい場合は `includeCancelled=true` を使用）
+            - `includeCancelled` と併用可能。`status` の指定値に `CANCELLED` が含まれないため両者の意味は競合しない
       responses:
         '200':
           description: コンテンツ一覧
@@ -884,6 +895,8 @@ paths:
                   meta:
                     $ref: '#/components/schemas/PaginationMeta'
                 required: [data, meta]
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 

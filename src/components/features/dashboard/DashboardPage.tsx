@@ -6,6 +6,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useCategories } from '@/hooks/useCategories'
 import { useChannels } from '@/hooks/useChannels'
 import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
+import {
+  STATUS_FILTER_VALUES,
+  type ContentStatusFilter,
+} from '@/lib/content-utils'
 
 import { ContentHeader } from './ContentHeader'
 import { ContentList } from './ContentList'
@@ -28,6 +32,17 @@ export function DashboardPage() {
   const order = (searchParams.get('order') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
   const watchLaterOnly = searchParams.get('watchLaterOnly') === 'true'
   const includeCancelled = searchParams.get('includeCancelled') === 'true'
+  const statusParam = searchParams.get('status')
+  const status: ContentStatusFilter[] = useMemo(() => {
+    if (!statusParam) return []
+    const parsed = statusParam
+      .split(',')
+      .filter((v): v is ContentStatusFilter =>
+        (STATUS_FILTER_VALUES as readonly string[]).includes(v),
+      )
+    // Stable order based on STATUS_FILTER_VALUES declaration order
+    return STATUS_FILTER_VALUES.filter((v) => parsed.includes(v))
+  }, [statusParam])
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -77,6 +92,27 @@ export function DashboardPage() {
     updateSearchParams({ includeCancelled: includeCancelled ? null : 'true' })
   }, [includeCancelled, updateSearchParams])
 
+  const handleChangeStatus = useCallback(
+    (next: ContentStatusFilter[]) => {
+      if (next.length === 0) {
+        updateSearchParams({ status: null })
+        return
+      }
+      // Stable order + dedup
+      const unique = STATUS_FILTER_VALUES.filter((v) => next.includes(v))
+      updateSearchParams({ status: unique.join(',') })
+    },
+    [updateSearchParams],
+  )
+
+  const handleClearFilters = useCallback(() => {
+    updateSearchParams({
+      watchLaterOnly: null,
+      includeCancelled: null,
+      status: null,
+    })
+  }, [updateSearchParams])
+
   const categoryName = useMemo(() => {
     if (selectedCategoryId === UNCATEGORIZED_CATEGORY_ID) return '未分類'
     const found = categories.find((c) => c.id === selectedCategoryId)
@@ -114,11 +150,14 @@ export function DashboardPage() {
               categoryId={selectedCategoryId}
               categoryName={categoryName}
               order={order}
+              status={status}
               watchLaterOnly={watchLaterOnly}
               includeCancelled={includeCancelled}
               onToggleOrder={handleToggleOrder}
+              onChangeStatus={handleChangeStatus}
               onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
               onToggleIncludeCancelled={handleToggleIncludeCancelled}
+              onClearFilters={handleClearFilters}
             />
 
             {/* Content list with infinite scroll */}
@@ -126,6 +165,7 @@ export function DashboardPage() {
               <ContentList
                 categoryId={selectedCategoryId}
                 order={order}
+                status={status}
                 watchLaterOnly={watchLaterOnly}
                 includeCancelled={includeCancelled}
               />

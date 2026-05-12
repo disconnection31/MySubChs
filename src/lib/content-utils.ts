@@ -13,6 +13,23 @@ export const STATUS_OPTIONS: ReadonlyArray<{ value: ContentStatus; label: string
   { value: 'CANCELLED', label: 'キャンセル済み' },
 ]
 
+/**
+ * コンテンツ一覧のステータスフィルタで指定可能な値。
+ * `CANCELLED` は独立フィルタ `includeCancelled` で制御するため含まない。
+ */
+export const STATUS_FILTER_VALUES = ['UPCOMING', 'LIVE', 'ARCHIVED'] as const
+
+export type ContentStatusFilter = (typeof STATUS_FILTER_VALUES)[number]
+
+export const STATUS_FILTER_OPTIONS: ReadonlyArray<{
+  value: ContentStatusFilter
+  label: string
+}> = [
+  { value: 'UPCOMING', label: '配信予定' },
+  { value: 'LIVE', label: '配信中' },
+  { value: 'ARCHIVED', label: 'アーカイブ' },
+]
+
 type StatusBadgeConfig = {
   text: string
   className: string

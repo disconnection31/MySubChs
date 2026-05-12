@@ -1,32 +1,46 @@
 'use client'
 
-import { ArrowDownAZ, ArrowUpAZ, BookmarkCheck, EyeOff } from 'lucide-react'
+import { ArrowDownAZ, ArrowUpAZ, Filter } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import type { ContentStatusFilter } from '@/lib/content-utils'
 
+import { ContentFilterPanel } from './ContentFilterPanel'
 import { PollButton } from './PollButton'
 
 type ContentHeaderProps = {
   categoryId: string | null
   categoryName: string
   order: 'asc' | 'desc'
+  status: ContentStatusFilter[]
   watchLaterOnly: boolean
   includeCancelled: boolean
   onToggleOrder: () => void
+  onChangeStatus: (next: ContentStatusFilter[]) => void
   onToggleWatchLaterOnly: () => void
   onToggleIncludeCancelled: () => void
+  onClearFilters: () => void
 }
 
 export function ContentHeader({
   categoryId,
   categoryName,
   order,
+  status,
   watchLaterOnly,
   includeCancelled,
   onToggleOrder,
+  onChangeStatus,
   onToggleWatchLaterOnly,
   onToggleIncludeCancelled,
+  onClearFilters,
 }: ContentHeaderProps) {
+  const activeFilterCount =
+    (watchLaterOnly ? 1 : 0) +
+    (includeCancelled ? 1 : 0) +
+    (status.length > 0 ? 1 : 0)
+
   return (
     <div className="border-b px-4 py-3">
       <div className="flex items-center gap-3">
@@ -46,25 +60,37 @@ export function ContentHeader({
             </>
           )}
         </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={activeFilterCount > 0 ? 'default' : 'outline'}
+              size="sm"
+              className="shrink-0"
+              aria-label="フィルタを開く"
+            >
+              <Filter className="mr-1 h-4 w-4" />
+              フィルタ
+              {activeFilterCount > 0 && (
+                <span className="ml-1 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs font-medium">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80">
+            <ContentFilterPanel
+              status={status}
+              watchLaterOnly={watchLaterOnly}
+              includeCancelled={includeCancelled}
+              onChangeStatus={onChangeStatus}
+              onToggleWatchLaterOnly={onToggleWatchLaterOnly}
+              onToggleIncludeCancelled={onToggleIncludeCancelled}
+              onClear={onClearFilters}
+              activeFilterCount={activeFilterCount}
+            />
+          </PopoverContent>
+        </Popover>
         <PollButton categoryId={categoryId} />
-      </div>
-      <div className="mt-2 flex items-center gap-2">
-        <Button
-          variant={watchLaterOnly ? 'default' : 'outline'}
-          size="sm"
-          onClick={onToggleWatchLaterOnly}
-        >
-          <BookmarkCheck className="mr-1 h-4 w-4" />
-          後で見るのみ
-        </Button>
-        <Button
-          variant={includeCancelled ? 'default' : 'outline'}
-          size="sm"
-          onClick={onToggleIncludeCancelled}
-        >
-          <EyeOff className="mr-1 h-4 w-4" />
-          キャンセル済みも表示
-        </Button>
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { useContents } from '@/hooks/useContents'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import type { ContentStatusFilter } from '@/lib/content-utils'
 
 import { ContentEmptyState } from './ContentEmptyState'
 import { ContentItem } from './ContentItem'
@@ -14,6 +15,7 @@ import { ContentSkeleton } from './ContentSkeleton'
 type ContentListProps = {
   categoryId: string | null
   order: 'asc' | 'desc'
+  status: ContentStatusFilter[]
   watchLaterOnly: boolean
   includeCancelled: boolean
   hasChannelsInCategory?: boolean
@@ -22,6 +24,7 @@ type ContentListProps = {
 export function ContentList({
   categoryId,
   order,
+  status,
   watchLaterOnly,
   includeCancelled,
   hasChannelsInCategory,
@@ -30,6 +33,7 @@ export function ContentList({
     useContents({
       categoryId,
       order,
+      status,
       watchLaterOnly,
       includeCancelled,
     })

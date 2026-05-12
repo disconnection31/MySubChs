@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { decodeCursor, getAuthenticatedSession } from '@/lib/api-helpers'
 import { DEFAULT_CONTENTS_LIMIT, MAX_CONTENTS_LIMIT } from '@/lib/config'
+import {
+  STATUS_FILTER_VALUES,
+  type ContentStatusFilter,
+} from '@/lib/content-utils'
 import { prisma } from '@/lib/db'
 import { ErrorCode, errorResponse } from '@/lib/errors'
 
@@ -66,6 +70,36 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const statusParam = searchParams.get('status')
+    let statusFilter: ContentStatusFilter[] | null = null
+    if (statusParam !== null && statusParam !== '') {
+      const rawValues = statusParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+      if (rawValues.includes('CANCELLED')) {
+        return errorResponse(
+          ErrorCode.VALIDATION_ERROR,
+          'status に CANCELLED は指定できません。includeCancelled パラメータを使用してください',
+          400,
+        )
+      }
+      const invalid = rawValues.filter(
+        (v) => !(STATUS_FILTER_VALUES as readonly string[]).includes(v),
+      )
+      if (invalid.length > 0) {
+        return errorResponse(
+          ErrorCode.VALIDATION_ERROR,
+          `status は ${STATUS_FILTER_VALUES.join(' / ')} のいずれかをカンマ区切りで指定してください`,
+          400,
+        )
+      }
+      const unique = Array.from(new Set(rawValues)) as ContentStatusFilter[]
+      if (unique.length > 0) {
+        statusFilter = unique
+      }
+    }
+
     let channelIds: string[]
 
     if (categoryId === 'uncategorized') {
@@ -103,7 +137,9 @@ export async function GET(request: NextRequest) {
       channelId: { in: channelIds },
     }
 
-    if (!includeCancelledParam) {
+    if (statusFilter && statusFilter.length > 0) {
+      where.status = { in: statusFilter }
+    } else if (!includeCancelledParam) {
       where.status = { not: 'CANCELLED' }
     }
 
