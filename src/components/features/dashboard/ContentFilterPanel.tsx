@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import {
+  countActiveFilters,
   STATUS_FILTER_OPTIONS,
   type ContentStatusFilter,
 } from '@/lib/content-utils'
@@ -16,7 +17,6 @@ type ContentFilterPanelProps = {
   onToggleWatchLaterOnly: () => void
   onToggleIncludeCancelled: () => void
   onClear: () => void
-  activeFilterCount: number
 }
 
 export function ContentFilterPanel({
@@ -27,8 +27,8 @@ export function ContentFilterPanel({
   onToggleWatchLaterOnly,
   onToggleIncludeCancelled,
   onClear,
-  activeFilterCount,
 }: ContentFilterPanelProps) {
+  const activeFilterCount = countActiveFilters({ status, watchLaterOnly, includeCancelled })
   const handleToggleStatus = (value: ContentStatusFilter, checked: boolean) => {
     if (checked) {
       if (status.includes(value)) return

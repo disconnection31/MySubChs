@@ -4,7 +4,7 @@ import { ArrowDownAZ, ArrowUpAZ, Filter } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import type { ContentStatusFilter } from '@/lib/content-utils'
+import { countActiveFilters, type ContentStatusFilter } from '@/lib/content-utils'
 
 import { ContentFilterPanel } from './ContentFilterPanel'
 import { PollButton } from './PollButton'
@@ -36,10 +36,7 @@ export function ContentHeader({
   onToggleIncludeCancelled,
   onClearFilters,
 }: ContentHeaderProps) {
-  const activeFilterCount =
-    (watchLaterOnly ? 1 : 0) +
-    (includeCancelled ? 1 : 0) +
-    (status.length > 0 ? 1 : 0)
+  const activeFilterCount = countActiveFilters({ status, watchLaterOnly, includeCancelled })
 
   return (
     <div className="border-b px-4 py-3">
@@ -86,7 +83,6 @@ export function ContentHeader({
               onToggleWatchLaterOnly={onToggleWatchLaterOnly}
               onToggleIncludeCancelled={onToggleIncludeCancelled}
               onClear={onClearFilters}
-              activeFilterCount={activeFilterCount}
             />
           </PopoverContent>
         </Popover>

@@ -7,7 +7,7 @@ import { useCategories } from '@/hooks/useCategories'
 import { useChannels } from '@/hooks/useChannels'
 import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
 import {
-  STATUS_FILTER_VALUES,
+  normalizeStatusFilter,
   type ContentStatusFilter,
 } from '@/lib/content-utils'
 
@@ -33,16 +33,10 @@ export function DashboardPage() {
   const watchLaterOnly = searchParams.get('watchLaterOnly') === 'true'
   const includeCancelled = searchParams.get('includeCancelled') === 'true'
   const statusParam = searchParams.get('status')
-  const status: ContentStatusFilter[] = useMemo(() => {
-    if (!statusParam) return []
-    const parsed = statusParam
-      .split(',')
-      .filter((v): v is ContentStatusFilter =>
-        (STATUS_FILTER_VALUES as readonly string[]).includes(v),
-      )
-    // Stable order based on STATUS_FILTER_VALUES declaration order
-    return STATUS_FILTER_VALUES.filter((v) => parsed.includes(v))
-  }, [statusParam])
+  const status: ContentStatusFilter[] = useMemo(
+    () => (statusParam ? normalizeStatusFilter(statusParam.split(',')) : []),
+    [statusParam],
+  )
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -94,13 +88,8 @@ export function DashboardPage() {
 
   const handleChangeStatus = useCallback(
     (next: ContentStatusFilter[]) => {
-      if (next.length === 0) {
-        updateSearchParams({ status: null })
-        return
-      }
-      // Stable order + dedup
-      const unique = STATUS_FILTER_VALUES.filter((v) => next.includes(v))
-      updateSearchParams({ status: unique.join(',') })
+      const normalized = normalizeStatusFilter(next)
+      updateSearchParams({ status: normalized.length === 0 ? null : normalized.join(',') })
     },
     [updateSearchParams],
   )

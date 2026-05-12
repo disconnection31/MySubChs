@@ -21,14 +21,34 @@ export const STATUS_FILTER_VALUES = ['UPCOMING', 'LIVE', 'ARCHIVED'] as const
 
 export type ContentStatusFilter = (typeof STATUS_FILTER_VALUES)[number]
 
-export const STATUS_FILTER_OPTIONS: ReadonlyArray<{
-  value: ContentStatusFilter
-  label: string
-}> = [
-  { value: 'UPCOMING', label: '配信予定' },
-  { value: 'LIVE', label: '配信中' },
-  { value: 'ARCHIVED', label: 'アーカイブ' },
-]
+export const STATUS_FILTER_OPTIONS = STATUS_OPTIONS.filter(
+  (o): o is { value: ContentStatusFilter; label: string } => o.value !== 'CANCELLED',
+)
+
+/**
+ * 任意の文字列配列を ContentStatusFilter[] に正規化する。
+ * 無効値を除外し、`STATUS_FILTER_VALUES` の宣言順に並べ替える。
+ * URL / queryKey を安定化させるため、入力順序に関わらず同じ結果を返す。
+ */
+export function normalizeStatusFilter(values: readonly string[]): ContentStatusFilter[] {
+  return STATUS_FILTER_VALUES.filter((v) => values.includes(v))
+}
+
+/**
+ * 「有効になっているフィルタ」の個数（0〜3）。バッジ表示およびクリアボタンの可視判定に使う。
+ * status 配列は項目が1つ以上あれば 1 とカウント。
+ */
+export function countActiveFilters(state: {
+  status: readonly ContentStatusFilter[]
+  watchLaterOnly: boolean
+  includeCancelled: boolean
+}): number {
+  return (
+    (state.watchLaterOnly ? 1 : 0) +
+    (state.includeCancelled ? 1 : 0) +
+    (state.status.length > 0 ? 1 : 0)
+  )
+}
 
 type StatusBadgeConfig = {
   text: string

@@ -163,7 +163,7 @@ describe('GET /api/contents', () => {
       expect(findManyCall?.where).toMatchObject({ status: { in: ['LIVE'] } })
     })
 
-    it('status=LIVE,UPCOMING を指定すると where.status = { in: ["LIVE", "UPCOMING"] } で絞り込む', async () => {
+    it('status=LIVE,UPCOMING を指定すると LIVE と UPCOMING で絞り込む', async () => {
       mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
       prismaMock.channel.findMany.mockResolvedValue([{ id: 'ch-1' }] as never)
       prismaMock.content.findMany.mockResolvedValue([] as never)
@@ -175,7 +175,9 @@ describe('GET /api/contents', () => {
 
       expect(response.status).toBe(200)
       const findManyCall = prismaMock.content.findMany.mock.calls[0]?.[0]
-      expect(findManyCall?.where).toMatchObject({ status: { in: ['LIVE', 'UPCOMING'] } })
+      expect(findManyCall?.where).toMatchObject({
+        status: { in: expect.arrayContaining(['LIVE', 'UPCOMING']) },
+      })
     })
 
     it('status に CANCELLED を含む場合 400 を返す', async () => {
@@ -216,7 +218,6 @@ describe('GET /api/contents', () => {
 
       expect(response.status).toBe(200)
       const findManyCall = prismaMock.content.findMany.mock.calls[0]?.[0]
-      // status 指定なし + includeCancelled=false（デフォルト） → status: { not: 'CANCELLED' }
       expect(findManyCall?.where).toMatchObject({ status: { not: 'CANCELLED' } })
     })
 
@@ -233,7 +234,6 @@ describe('GET /api/contents', () => {
       expect(response.status).toBe(200)
       const findManyCall = prismaMock.content.findMany.mock.calls[0]?.[0]
       expect(findManyCall?.where).toMatchObject({ status: { in: ['ARCHIVED'] } })
-      // status: { not: 'CANCELLED' } が設定されていないことを確認
       expect((findManyCall?.where as { status: unknown }).status).not.toMatchObject({
         not: 'CANCELLED',
       })

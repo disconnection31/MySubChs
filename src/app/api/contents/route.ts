@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { decodeCursor, getAuthenticatedSession } from '@/lib/api-helpers'
 import { DEFAULT_CONTENTS_LIMIT, MAX_CONTENTS_LIMIT } from '@/lib/config'
 import {
+  normalizeStatusFilter,
   STATUS_FILTER_VALUES,
   type ContentStatusFilter,
 } from '@/lib/content-utils'
@@ -94,9 +95,9 @@ export async function GET(request: NextRequest) {
           400,
         )
       }
-      const unique = Array.from(new Set(rawValues)) as ContentStatusFilter[]
-      if (unique.length > 0) {
-        statusFilter = unique
+      const normalized = normalizeStatusFilter(rawValues)
+      if (normalized.length > 0) {
+        statusFilter = normalized
       }
     }
 
