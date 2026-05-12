@@ -6,6 +6,10 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useCategories } from '@/hooks/useCategories'
 import { useChannels } from '@/hooks/useChannels'
 import { UNCATEGORIZED_CATEGORY_ID } from '@/lib/config'
+import {
+  normalizeStatusFilter,
+  type ContentStatusFilter,
+} from '@/lib/content-utils'
 
 import { ContentHeader } from './ContentHeader'
 import { ContentList } from './ContentList'
@@ -28,6 +32,11 @@ export function DashboardPage() {
   const order = (searchParams.get('order') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
   const watchLaterOnly = searchParams.get('watchLaterOnly') === 'true'
   const includeCancelled = searchParams.get('includeCancelled') === 'true'
+  const statusParam = searchParams.get('status')
+  const status: ContentStatusFilter[] = useMemo(
+    () => (statusParam ? normalizeStatusFilter(statusParam.split(',')) : []),
+    [statusParam],
+  )
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -77,6 +86,22 @@ export function DashboardPage() {
     updateSearchParams({ includeCancelled: includeCancelled ? null : 'true' })
   }, [includeCancelled, updateSearchParams])
 
+  const handleChangeStatus = useCallback(
+    (next: ContentStatusFilter[]) => {
+      const normalized = normalizeStatusFilter(next)
+      updateSearchParams({ status: normalized.length === 0 ? null : normalized.join(',') })
+    },
+    [updateSearchParams],
+  )
+
+  const handleClearFilters = useCallback(() => {
+    updateSearchParams({
+      watchLaterOnly: null,
+      includeCancelled: null,
+      status: null,
+    })
+  }, [updateSearchParams])
+
   const categoryName = useMemo(() => {
     if (selectedCategoryId === UNCATEGORIZED_CATEGORY_ID) return '未分類'
     const found = categories.find((c) => c.id === selectedCategoryId)
@@ -114,11 +139,14 @@ export function DashboardPage() {
               categoryId={selectedCategoryId}
               categoryName={categoryName}
               order={order}
+              status={status}
               watchLaterOnly={watchLaterOnly}
               includeCancelled={includeCancelled}
               onToggleOrder={handleToggleOrder}
+              onChangeStatus={handleChangeStatus}
               onToggleWatchLaterOnly={handleToggleWatchLaterOnly}
               onToggleIncludeCancelled={handleToggleIncludeCancelled}
+              onClearFilters={handleClearFilters}
             />
 
             {/* Content list with infinite scroll */}
@@ -126,6 +154,7 @@ export function DashboardPage() {
               <ContentList
                 categoryId={selectedCategoryId}
                 order={order}
+                status={status}
                 watchLaterOnly={watchLaterOnly}
                 includeCancelled={includeCancelled}
               />
