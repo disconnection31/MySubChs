@@ -140,7 +140,6 @@ docker compose exec redis redis-cli HGETALL 'bull:mysubchs:repeat:<key>'
 `app` / `worker` サービスの `command` 先頭で毎回 `npm install` を実行する（Issue #172）。これにより、`package.json` / `package-lock.json` に追加された依存が、起動時にコンテナ内の匿名ボリューム上 `node_modules` へ自動的に同期される。
 
 ```yaml
-# docker-compose.yml
 app:
   command: sh -c "npm install && npx prisma generate && npm run dev"
 worker:
@@ -157,7 +156,6 @@ docker compose up
 
 - lockfile が既にコンテナ内 `node_modules` と一致している場合、`npm install` の追加処理は数秒で完了する。
 - lockfile に差分がある場合は差分のみが導入され、破壊的な再インストールは発生しない。
-- 本ルールは `app` / `worker` の両サービスに適用される。
 
 ### 背景
 
