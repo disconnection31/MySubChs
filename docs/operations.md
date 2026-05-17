@@ -155,7 +155,10 @@ docker compose up
 ```
 
 - lockfile が既にコンテナ内 `node_modules` と一致している場合、`npm install` の追加処理は数秒で完了する。
-- lockfile に差分がある場合は差分のみが導入され、破壊的な再インストールは発生しない。
+- lockfile に差分がある場合は差分のみが導入される（`node_modules` の全削除→再構築は発生しない）。依存数や差分規模に応じて数十秒〜分単位かかることがある。
+- 起動時に `npm install` が走るため、起動毎に npm registry への到達性が必要。オフライン環境ではコンテナが起動失敗する。
+
+> **Note**: `docker-compose.yml` は `- .:/app` でホストのソースをバインドマウントしているため、コンテナ内で実行された `npm install` がホスト側の `package-lock.json` を書き換える場合がある。ブランチ切替直後や transitive な依存解決順序の揺れが原因で、依存追加が同期された証跡として git status に差分が出ることがある（想定挙動）。
 
 ### 背景
 
