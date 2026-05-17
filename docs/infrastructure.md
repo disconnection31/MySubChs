@@ -20,7 +20,7 @@ services:
       - /app/.next
     env_file:
       - .env
-    command: npm run dev
+    command: sh -c "npm install && npx prisma generate && npm run dev"
     depends_on:
       db:
         condition: service_healthy
@@ -38,7 +38,7 @@ services:
       - /app/node_modules
     env_file:
       - .env
-    command: npx tsx src/jobs/worker.ts
+    command: sh -c "npm install && npx prisma generate && npx tsx src/jobs/worker.ts"
     depends_on:
       db:
         condition: service_healthy
@@ -94,6 +94,7 @@ networks:
 - `db` / `redis` はヘルスチェックが成功するまで `app` / `worker` の起動を待機する（`depends_on` + `condition: service_healthy`）。
 - `worker` は `app` と同一イメージを使用し、`command` のみ異なる（`npx tsx src/jobs/worker.ts`）。
 - `db` の接続情報（ユーザー名・パスワード・DB名）は `.env` の `DATABASE_URL` と一致させる必要がある。
+- `app` / `worker` の `command` 先頭で毎回 `npm install` を実行することで、`package.json` / `package-lock.json` への依存追加を `docker compose up` 時に匿名ボリューム上の `node_modules` へ自動同期する（Issue #172）。lockfile 一致時の追加処理は数秒で完了する。
 
 ---
 
