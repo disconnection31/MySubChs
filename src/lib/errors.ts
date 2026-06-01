@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
 
-import { DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS } from '@/lib/config'
-import { formatCooldownLabel } from '@/lib/format'
-
 // docs/error-handling.md §2 に列挙されている全エラーコード
 export const ErrorCode = {
   // 共通 (§2.1)
@@ -86,12 +83,12 @@ export function validationErrorResponse(
  * クールダウンエラーレスポンスを生成する（retryAfter フィールド付き）
  * docs/error-handling.md §2.6 準拠
  *
- * `message` のデフォルトはユーザー設定のデフォルト値（5分）。
- * 実際のエラーメッセージは呼び出し元がユーザー設定値から動的に組み立てて渡すこと。
+ * `message` はユーザー設定値から動的に組み立てて呼び出し元が渡す
+ * （例: `formatCooldownLabel(UserSetting.manualPollCooldownSeconds)` 経由）。
  */
 export function cooldownErrorResponse(
   retryAfterSeconds: number,
-  message = `手動ポーリングは${formatCooldownLabel(DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS)}でのみ実行できます`,
+  message: string,
 ): NextResponse<ErrorResponseBody> {
   return NextResponse.json(
     {
