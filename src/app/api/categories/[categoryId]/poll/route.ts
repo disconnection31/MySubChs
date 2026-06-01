@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server'
 
 import { getAuthenticatedSession } from '@/lib/api-helpers'
 import {
+  DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
   MANUAL_POLL_JOB_PREFIX,
-  MANUAL_POLLING_COOLDOWN_SECONDS,
   REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX,
   REDIS_KEY_QUOTA_EXHAUSTED,
 } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { ErrorCode, cooldownErrorResponse, errorResponse } from '@/lib/errors'
+import { formatCooldownLabel } from '@/lib/format'
 import { queue } from '@/lib/queue'
 import { redis } from '@/lib/redis'
 
@@ -25,10 +26,15 @@ export async function POST(_request: Request, context: RouteContext) {
   try {
     const { categoryId } = await context.params
 
-    // Check category exists and belongs to user
-    const category = await prisma.category.findFirst({
-      where: { id: categoryId, userId: auth.userId },
-    })
+    // Check category exists and belongs to user, and fetch user settings in parallel.
+    const [category, userSetting] = await Promise.all([
+      prisma.category.findFirst({
+        where: { id: categoryId, userId: auth.userId },
+      }),
+      prisma.userSetting.findUnique({
+        where: { userId: auth.userId },
+      }),
+    ])
     if (!category) {
       return errorResponse(
         ErrorCode.CATEGORY_NOT_FOUND,
@@ -36,6 +42,9 @@ export async function POST(_request: Request, context: RouteContext) {
         404,
       )
     }
+
+    const cooldownSeconds =
+      userSetting?.manualPollCooldownSeconds ?? DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS
 
     const cooldownKey = `${REDIS_KEY_MANUAL_POLL_COOLDOWN_PREFIX}${categoryId}`
     const [quotaExhausted, ttl] = await Promise.all([
@@ -52,10 +61,13 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     if (ttl > 0) {
-      return cooldownErrorResponse(ttl)
+      return cooldownErrorResponse(
+        ttl,
+        `手動ポーリングは${formatCooldownLabel(cooldownSeconds)}でのみ実行できます`,
+      )
     }
 
-    await redis.set(cooldownKey, '1', 'EX', MANUAL_POLLING_COOLDOWN_SECONDS)
+    await redis.set(cooldownKey, '1', 'EX', cooldownSeconds)
 
     const jobId = `${MANUAL_POLL_JOB_PREFIX}${categoryId}`
     await queue.add(

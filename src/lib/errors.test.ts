@@ -23,6 +23,12 @@ describe('errors', () => {
     it('QUOTA_EXHAUSTED が定義されている', () => {
       expect(ErrorCode.QUOTA_EXHAUSTED).toBe('QUOTA_EXHAUSTED')
     })
+
+    it('INVALID_MANUAL_POLL_COOLDOWN_SECONDS が定義されている', () => {
+      expect(ErrorCode.INVALID_MANUAL_POLL_COOLDOWN_SECONDS).toBe(
+        'INVALID_MANUAL_POLL_COOLDOWN_SECONDS',
+      )
+    })
   })
 
   describe('errorResponse()', () => {

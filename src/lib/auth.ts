@@ -4,7 +4,7 @@ import GoogleProvider from 'next-auth/providers/google'
 
 import { Prisma } from '@prisma/client'
 
-import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_POLLING_INTERVAL_MINUTES, GOOGLE_PROVIDER, SETUP_JOB_NAME } from '@/lib/config'
+import { DEFAULT_CONTENT_RETENTION_DAYS, DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS, DEFAULT_POLLING_INTERVAL_MINUTES, GOOGLE_PROVIDER, SETUP_JOB_NAME } from '@/lib/config'
 import { prisma } from '@/lib/db'
 import { queue } from '@/lib/queue'
 
@@ -99,6 +99,7 @@ export const authOptions: NextAuthOptions = {
             userId: user.id,
             pollingIntervalMinutes: DEFAULT_POLLING_INTERVAL_MINUTES,
             contentRetentionDays: DEFAULT_CONTENT_RETENTION_DAYS,
+            manualPollCooldownSeconds: DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
           },
         })
 

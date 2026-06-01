@@ -2,7 +2,11 @@ import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type DeepMockProxy, mockDeep, mockReset } from 'vitest-mock-extended'
 
-import { YOUTUBE_QUOTA_DAILY_LIMIT, YOUTUBE_QUOTA_WARNING_THRESHOLD } from '@/lib/config'
+import {
+  DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
+  YOUTUBE_QUOTA_DAILY_LIMIT,
+  YOUTUBE_QUOTA_WARNING_THRESHOLD,
+} from '@/lib/config'
 import { buildRequest } from '@/tests/helpers/request-helper'
 
 type MockPrisma = DeepMockProxy<PrismaClient>
@@ -77,6 +81,7 @@ describe('GET /api/settings', () => {
       userId: 'user-1',
       pollingIntervalMinutes: 30,
       contentRetentionDays: 60,
+      manualPollCooldownSeconds: 300,
       createdAt: now,
       updatedAt: now,
     } as never)
@@ -107,6 +112,7 @@ describe('GET /api/settings', () => {
     const body = await response.json()
     expect(body.pollingIntervalMinutes).toBe(30)
     expect(body.contentRetentionDays).toBe(60)
+    expect(body.manualPollCooldownSeconds).toBe(300)
     expect(body.quotaDailyLimit).toBe(YOUTUBE_QUOTA_DAILY_LIMIT)
     expect(body.quotaWarningThreshold).toBe(YOUTUBE_QUOTA_WARNING_THRESHOLD)
     expect(body.tokenStatus).toBe('valid')
@@ -172,6 +178,7 @@ describe('PATCH /api/settings', () => {
       userId: 'user-1',
       pollingIntervalMinutes: 10,
       contentRetentionDays: 60,
+      manualPollCooldownSeconds: 300,
       createdAt: now,
       updatedAt: now,
     } as never)
@@ -187,5 +194,80 @@ describe('PATCH /api/settings', () => {
     const body = await response.json()
     expect(body.pollingIntervalMinutes).toBe(10)
     expect(body.contentRetentionDays).toBe(60)
+    expect(body.manualPollCooldownSeconds).toBe(300)
+  })
+
+  it('manualPollCooldownSeconds を正常に更新する', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+    prismaMock.userSetting.upsert.mockResolvedValue({
+      id: 'us-1',
+      userId: 'user-1',
+      pollingIntervalMinutes: 30,
+      contentRetentionDays: 60,
+      manualPollCooldownSeconds: 90,
+      createdAt: now,
+      updatedAt: now,
+    } as never)
+
+    const request = buildRequest('/api/settings', {
+      method: 'PATCH',
+      body: { manualPollCooldownSeconds: 90 },
+    })
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.manualPollCooldownSeconds).toBe(90)
+  })
+
+  it('manualPollCooldownSeconds が 30 の倍数でない場合 400 を返す', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+
+    const request = buildRequest('/api/settings', {
+      method: 'PATCH',
+      body: { manualPollCooldownSeconds: 45 },
+    })
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error.code).toBe('INVALID_MANUAL_POLL_COOLDOWN_SECONDS')
+  })
+
+  it('manualPollCooldownSeconds が範囲外（最小値未満）の場合 400 を返す', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+
+    const request = buildRequest('/api/settings', {
+      method: 'PATCH',
+      body: { manualPollCooldownSeconds: 0 },
+    })
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error.code).toBe('INVALID_MANUAL_POLL_COOLDOWN_SECONDS')
+  })
+
+  it('manualPollCooldownSeconds が範囲外（最大値超過）の場合 400 を返す', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+
+    const request = buildRequest('/api/settings', {
+      method: 'PATCH',
+      body: { manualPollCooldownSeconds: 630 },
+    })
+
+    const response = await PATCH(request)
+
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.error.code).toBe('INVALID_MANUAL_POLL_COOLDOWN_SECONDS')
+  })
+
+  it('DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS は VALID_MANUAL_POLL_COOLDOWN_SECONDS の有効値である', () => {
+    // Sanity check
+    expect(DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS).toBe(300)
   })
 })

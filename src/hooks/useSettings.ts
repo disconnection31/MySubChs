@@ -15,8 +15,16 @@ export function useUpdateSettings() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: { pollingIntervalMinutes?: number; contentRetentionDays?: number }) =>
-      apiFetch<{ pollingIntervalMinutes: number; contentRetentionDays: number }>('/api/settings', {
+    mutationFn: (data: {
+      pollingIntervalMinutes?: number
+      contentRetentionDays?: number
+      manualPollCooldownSeconds?: number
+    }) =>
+      apiFetch<{
+        pollingIntervalMinutes: number
+        contentRetentionDays: number
+        manualPollCooldownSeconds: number
+      }>('/api/settings', {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),

@@ -41,7 +41,29 @@ export const YOUTUBE_CHANNELS_MAX_RESULTS = 50
 export const YOUTUBE_SUBSCRIPTIONS_MAX_RESULTS = 50
 
 // 手動ポーリングのクールダウン（秒）
-export const MANUAL_POLLING_COOLDOWN_SECONDS = 300
+// UserSetting.manualPollCooldownSeconds の DB デフォルト値、
+// および UserSetting 不在時のフォールバックとして使用する。
+export const DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS = 300
+
+// 手動ポーリング クールダウンの最小値（秒）
+export const MANUAL_POLL_COOLDOWN_MIN_SECONDS = 30
+
+// 手動ポーリング クールダウンの最大値（秒）
+export const MANUAL_POLL_COOLDOWN_MAX_SECONDS = 600
+
+// 手動ポーリング クールダウンの刻み（秒）
+export const MANUAL_POLL_COOLDOWN_STEP_SECONDS = 30
+
+// 手動ポーリング クールダウンの有効値リスト（秒）。30〜600 を 30 秒刻み（20 件）
+export const VALID_MANUAL_POLL_COOLDOWN_SECONDS = Array.from(
+  {
+    length:
+      (MANUAL_POLL_COOLDOWN_MAX_SECONDS - MANUAL_POLL_COOLDOWN_MIN_SECONDS) /
+        MANUAL_POLL_COOLDOWN_STEP_SECONDS +
+      1,
+  },
+  (_, i) => MANUAL_POLL_COOLDOWN_MIN_SECONDS + i * MANUAL_POLL_COOLDOWN_STEP_SECONDS,
+) as readonly number[]
 
 // ポーリング間隔の有効値リスト（分）
 export const VALID_POLLING_INTERVALS = [5, 10, 30, 60] as const

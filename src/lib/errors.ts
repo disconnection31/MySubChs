@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 
-import { MANUAL_POLLING_COOLDOWN_SECONDS } from '@/lib/config'
+import { DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS } from '@/lib/config'
+import { formatCooldownLabel } from '@/lib/format'
 
 // docs/error-handling.md §2 に列挙されている全エラーコード
 export const ErrorCode = {
@@ -29,6 +30,7 @@ export const ErrorCode = {
   // 設定・チャンネル同期 (§2.7)
   INVALID_POLLING_INTERVAL: 'INVALID_POLLING_INTERVAL',
   INVALID_RETENTION_DAYS: 'INVALID_RETENTION_DAYS',
+  INVALID_MANUAL_POLL_COOLDOWN_SECONDS: 'INVALID_MANUAL_POLL_COOLDOWN_SECONDS',
   YOUTUBE_API_ERROR: 'YOUTUBE_API_ERROR',
   OAUTH_TOKEN_INVALID: 'OAUTH_TOKEN_INVALID',
 
@@ -83,10 +85,13 @@ export function validationErrorResponse(
 /**
  * クールダウンエラーレスポンスを生成する（retryAfter フィールド付き）
  * docs/error-handling.md §2.6 準拠
+ *
+ * `message` のデフォルトはユーザー設定のデフォルト値（5分）。
+ * 実際のエラーメッセージは呼び出し元がユーザー設定値から動的に組み立てて渡すこと。
  */
 export function cooldownErrorResponse(
   retryAfterSeconds: number,
-  message = `手動ポーリングは${MANUAL_POLLING_COOLDOWN_SECONDS / 60}分間隔でのみ実行できます`,
+  message = `手動ポーリングは${formatCooldownLabel(DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS)}でのみ実行できます`,
 ): NextResponse<ErrorResponseBody> {
   return NextResponse.json(
     {

@@ -14,7 +14,7 @@ User ──< WatchLater    (Content と User の「後で見る」状態)
 Content ──< WatchLater
 User ──< PushSubscription
 Category ──| NotificationSetting  (1:1。watchLaterDefault, autoExpireHours, notifyOnUpcoming, autoPollingEnabled, pollingIntervalMinutes を含む。カテゴリ作成時にデフォルト値で自動生成する)
-User ──| UserSetting              (1:1。ポーリング間隔・コンテンツ保持期間を管理。ユーザー初回ログイン時にデフォルト値で自動生成する)
+User ──| UserSetting              (1:1。ポーリング間隔・コンテンツ保持期間・手動ポーリング クールダウンを管理。ユーザー初回ログイン時にデフォルト値で自動生成する)
 ```
 
 ---
@@ -197,6 +197,7 @@ Web Push通知用のサブスクリプション情報。
 | userId | String | FK → User (UNIQUE) |
 | pollingIntervalMinutes | Int | ポーリング間隔（分）。デフォルト: 30。選択肢: 5/10/30/60 |
 | contentRetentionDays | Int | コンテンツ保持期間（日）。デフォルト: 60（2ヶ月）。選択肢: 30/60/90/180/365 |
+| manualPollCooldownSeconds | Int | 手動ポーリングのクールダウン（秒）。デフォルト: 300（5分）。選択肢: 30〜600 を 30 秒刻み |
 | createdAt | DateTime | 作成日時 |
 | updatedAt | DateTime | 更新日時 |
 
@@ -358,12 +359,13 @@ model PushSubscription {
 }
 
 model UserSetting {
-  id                       String   @id @default(uuid())
-  userId                   String   @unique
-  pollingIntervalMinutes   Int      @default(30)   // 選択肢: 5/10/30/60
-  contentRetentionDays     Int      @default(60)   // 選択肢: 30/60/90/180/365（2ヶ月=60日がデフォルト）
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
+  id                         String   @id @default(uuid())
+  userId                     String   @unique
+  pollingIntervalMinutes     Int      @default(30)    // 選択肢: 5/10/30/60
+  contentRetentionDays       Int      @default(60)    // 選択肢: 30/60/90/180/365（2ヶ月=60日がデフォルト）
+  manualPollCooldownSeconds  Int      @default(300)   // 手動ポーリングのクールダウン秒数。デフォルト: 300（5分）。選択肢: 30〜600 を 30 秒刻み
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
 
   user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
