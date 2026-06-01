@@ -9,6 +9,7 @@ import {
   DEV_USER_NAME,
   VALID_AUTO_EXPIRE_HOURS,
   VALID_CONTENT_RETENTION_DAYS,
+  VALID_MANUAL_POLL_COOLDOWN_SECONDS,
   VALID_POLLING_INTERVALS,
   isDevBypassAuth,
 } from '@/lib/config'
@@ -67,6 +68,11 @@ export const isValidContentRetentionDays = makeAllowedValuesGuard(VALID_CONTENT_
 
 /** WatchLater 自動失効時間値が有効値（VALID_AUTO_EXPIRE_HOURS）に含まれるか検証する型ガード */
 export const isValidAutoExpireHours = makeAllowedValuesGuard(VALID_AUTO_EXPIRE_HOURS)
+
+/** 手動ポーリング クールダウン秒数が有効値（VALID_MANUAL_POLL_COOLDOWN_SECONDS）に含まれるか検証する型ガード */
+export const isValidManualPollCooldownSeconds = makeAllowedValuesGuard(
+  VALID_MANUAL_POLL_COOLDOWN_SECONDS,
+)
 
 /**
  * Content.status の値が ContentStatus enum に含まれるか検証する型ガード。

@@ -267,7 +267,17 @@ components:
           description: >
             コンテンツ保持期間（日）。デフォルト 60日（2ヶ月）。
             期間を超えた Content は ContentCleanup ジョブが毎日物理削除する。
-      required: [pollingIntervalMinutes, contentRetentionDays]
+        manualPollCooldownSeconds:
+          type: integer
+          minimum: 30
+          maximum: 600
+          multipleOf: 30
+          default: 300
+          description: >
+            手動ポーリングのクールダウン（秒）。デフォルト 300（5分）。
+            設定範囲: 30〜600 を 30 秒刻み。
+            このカテゴリで「今すぐポーリング」を連続実行できない最短間隔。
+      required: [pollingIntervalMinutes, contentRetentionDays, manualPollCooldownSeconds]
 
     # --- UserSettingWithStats ---
     UserSettingWithStats:
@@ -382,7 +392,9 @@ components:
               code: CATEGORY_NAME_DUPLICATE
               message: 同じ名前のカテゴリがすでに存在します
     TooManyRequests:
-      description: クールダウン中のため受け付けられない（手動ポーリングのみ）
+      description: >
+        クールダウン中のため受け付けられない（手動ポーリングのみ）。
+        間隔は `UserSetting.manualPollCooldownSeconds`（デフォルト 300 秒）に基づき可変。
       content:
         application/json:
           schema:
@@ -663,7 +675,7 @@ paths:
         指定カテゴリのチャンネルを対象とした即時ポーリングを BullMQ にエンキューする。
 
         - `autoPollingEnabled=false` のカテゴリでも実行可能
-        - 同一カテゴリへのリクエストは **5分間のクールダウン** を設ける（Redis TTL で管理）
+        - 同一カテゴリへのリクエストは **ユーザー設定可能なクールダウン**（`UserSetting.manualPollCooldownSeconds`、デフォルト 5 分、30 秒〜10 分、30 秒刻み）を設ける（Redis TTL で管理）
         - ジョブは非同期で実行され、このエンドポイントは完了を待たずにすぐ応答する
         - クライアントは `GET /categories/{categoryId}/poll/status` でジョブ完了を検知する
         - Redis の `quota:exhausted` キーが存在する場合は即座に 503 を返す（エンキューしない）
@@ -1126,6 +1138,11 @@ paths:
                 contentRetentionDays:
                   type: integer
                   enum: [30, 60, 90, 180, 365]
+                manualPollCooldownSeconds:
+                  type: integer
+                  minimum: 30
+                  maximum: 600
+                  multipleOf: 30
       responses:
         '200':
           description: 更新されたユーザー設定

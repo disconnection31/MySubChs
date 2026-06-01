@@ -23,6 +23,12 @@ describe('errors', () => {
     it('QUOTA_EXHAUSTED が定義されている', () => {
       expect(ErrorCode.QUOTA_EXHAUSTED).toBe('QUOTA_EXHAUSTED')
     })
+
+    it('INVALID_MANUAL_POLL_COOLDOWN_SECONDS が定義されている', () => {
+      expect(ErrorCode.INVALID_MANUAL_POLL_COOLDOWN_SECONDS).toBe(
+        'INVALID_MANUAL_POLL_COOLDOWN_SECONDS',
+      )
+    })
   })
 
   describe('errorResponse()', () => {
@@ -99,7 +105,7 @@ describe('errors', () => {
 
   describe('cooldownErrorResponse()', () => {
     it('{ error: { code, message, retryAfter } } の形式で返す', async () => {
-      const res = cooldownErrorResponse(180)
+      const res = cooldownErrorResponse(180, '手動ポーリングは5分間隔でのみ実行できます')
       const body = await res.json()
 
       expect(body).toEqual({
@@ -112,22 +118,22 @@ describe('errors', () => {
     })
 
     it('retryAfter フィールドが含まれる', async () => {
-      const res = cooldownErrorResponse(120)
+      const res = cooldownErrorResponse(120, '手動ポーリングは5分間隔でのみ実行できます')
       const body = await res.json()
 
       expect(body.error.retryAfter).toBe(120)
     })
 
     it('HTTP ステータスコードが 429 である', () => {
-      const res = cooldownErrorResponse(300)
+      const res = cooldownErrorResponse(300, '手動ポーリングは5分間隔でのみ実行できます')
       expect(res.status).toBe(429)
     })
 
-    it('カスタムメッセージを指定できる', async () => {
-      const res = cooldownErrorResponse(60, 'カスタムクールダウンメッセージ')
+    it('呼び出し元が指定したメッセージをそのまま返す', async () => {
+      const res = cooldownErrorResponse(60, '手動ポーリングは30秒間隔でのみ実行できます')
       const body = await res.json()
 
-      expect(body.error.message).toBe('カスタムクールダウンメッセージ')
+      expect(body.error.message).toBe('手動ポーリングは30秒間隔でのみ実行できます')
     })
   })
 })

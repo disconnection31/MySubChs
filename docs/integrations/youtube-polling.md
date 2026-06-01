@@ -354,9 +354,10 @@ POST /api/categories/{categoryId}/poll
 
 **クールダウン（クォータ過剰消費防止）:**
 
-- 同一カテゴリへの手動ポーリングは最低**5分間のクールダウン**を設ける
-- 実装：Redis に `manual-poll:cooldown:{categoryId}` キーを TTL=300秒 でセット
-- クールダウン中のリクエストは HTTP 429 を返す（レスポンスボディは [openapi.yaml](../openapi.yaml) の `Error` スキーマ参照）
+- 同一カテゴリへの手動ポーリングは **ユーザー設定可能なクールダウン** を設ける（`UserSetting.manualPollCooldownSeconds`、デフォルト 300 秒、設定範囲 30〜600 秒を 30 秒刻み）
+- 実装：Redis に `manual-poll:cooldown:{categoryId}` キーを TTL=`UserSetting.manualPollCooldownSeconds` 秒でセット（`UserSetting` 不在時は `DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS = 300` をフォールバックとして使用）
+- 設定値変更時、既存の Redis cooldown TTL は次回 SET まで旧値のまま残る（次回ポーリング実行時から新値が反映される）
+- クールダウン中のリクエストは HTTP 429 を返す（レスポンスボディは [openapi.yaml](../openapi.yaml) の `Error` スキーマ参照）。`message` は `formatCooldownLabel(seconds)` でユーザー設定値に応じて動的に組み立てる（例: 「手動ポーリングは 30 秒間隔でのみ実行できます」「手動ポーリングは 1 分 30 秒間隔でのみ実行できます」）
 - UIはこのレスポンスを受けてボタンを非活性化し残り時間を表示する
 
 **ジョブステータス確認 API:**

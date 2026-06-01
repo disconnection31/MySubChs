@@ -1,6 +1,7 @@
 'use client'
 
 import { AlertCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -10,7 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 import { useUpdateSettings } from '@/hooks/useSettings'
+import {
+  MANUAL_POLL_COOLDOWN_MAX_SECONDS,
+  MANUAL_POLL_COOLDOWN_MIN_SECONDS,
+  MANUAL_POLL_COOLDOWN_STEP_SECONDS,
+} from '@/lib/config'
+import { formatCooldownLabel } from '@/lib/format'
 import type { UserSettingsResponse } from '@/types/api'
 
 const POLLING_INTERVAL_OPTIONS = [
@@ -29,6 +37,19 @@ export function PollingSection({ settings }: Props) {
 
   const handleIntervalChange = (value: string) => {
     updateSettings.mutate({ pollingIntervalMinutes: Number(value) })
+  }
+
+  const [cooldownDraft, setCooldownDraft] = useState(settings.manualPollCooldownSeconds)
+
+  useEffect(() => {
+    setCooldownDraft(settings.manualPollCooldownSeconds)
+  }, [settings.manualPollCooldownSeconds])
+
+  const handleCooldownCommit = (value: number[]) => {
+    const next = value[0]
+    if (next !== settings.manualPollCooldownSeconds) {
+      updateSettings.mutate({ manualPollCooldownSeconds: next })
+    }
   }
 
   const isQuotaExhausted = settings.quotaExhaustedUntil != null
@@ -75,6 +96,28 @@ export function PollingSection({ settings }: Props) {
             カテゴリごとに上書きしない場合に使用されるデフォルト間隔。
             <br />
             変更は次のポーリングサイクル開始時から反映されます。
+          </p>
+        </div>
+
+        {/* Manual poll cooldown slider */}
+        <div>
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm text-muted-foreground">手動ポーリング クールダウン</span>
+            <span className="text-sm font-medium">{formatCooldownLabel(cooldownDraft)}</span>
+          </div>
+          <Slider
+            className="mt-2"
+            min={MANUAL_POLL_COOLDOWN_MIN_SECONDS}
+            max={MANUAL_POLL_COOLDOWN_MAX_SECONDS}
+            step={MANUAL_POLL_COOLDOWN_STEP_SECONDS}
+            value={[cooldownDraft]}
+            onValueChange={([v]) => setCooldownDraft(v)}
+            onValueCommit={handleCooldownCommit}
+            disabled={updateSettings.isPending}
+            aria-label="手動ポーリング クールダウン"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            カテゴリの「今すぐポーリング」を連続実行できない最短間隔。デフォルト 5 分。
           </p>
         </div>
 

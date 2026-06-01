@@ -126,6 +126,7 @@ export type PollStatusResponse = {
 export type UserSettingsResponse = {
   pollingIntervalMinutes: number
   contentRetentionDays: number
+  manualPollCooldownSeconds: number
   estimatedDailyQuota: number
   quotaWarningThreshold: number
   quotaDailyLimit: number

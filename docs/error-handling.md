@@ -95,7 +95,7 @@
 | エラーコード | HTTP | 発生条件 |
 |---|---|---|
 | `CATEGORY_NOT_FOUND` | 404 | 指定IDのカテゴリが存在しない |
-| `POLLING_COOLDOWN` | 429 | クールダウン中（5分以内に再実行） |
+| `POLLING_COOLDOWN` | 429 | クールダウン中（`UserSetting.manualPollCooldownSeconds` 以内に再実行。デフォルト 5 分、30 秒〜10 分の 30 秒刻みで設定可能） |
 | `QUOTA_EXHAUSTED` | 503 | YouTube API クォータが本日分を超過している |
 
 クールダウン時のレスポンス形式：
@@ -112,12 +112,15 @@
 
 `retryAfter`: クールダウン残り秒数（整数）
 
+`message`: `UserSetting.manualPollCooldownSeconds` の値を `formatCooldownLabel(seconds)`（`src/lib/format.ts`）で日本語ラベルに変換した文言。例: 30 → 「手動ポーリングは30秒間隔でのみ実行できます」、90 → 「手動ポーリングは1分30秒間隔でのみ実行できます」、300 → 「手動ポーリングは5分間隔でのみ実行できます」。
+
 ### 2.7 設定・チャンネル同期（`/api/settings`）
 
 | エラーコード | HTTP | 発生条件 |
 |---|---|---|
 | `INVALID_POLLING_INTERVAL` | 400 | 有効でないポーリング間隔値（5/10/30/60 以外） |
 | `INVALID_RETENTION_DAYS` | 400 | 有効でないコンテンツ保持期間値 |
+| `INVALID_MANUAL_POLL_COOLDOWN_SECONDS` | 400 | 手動ポーリング クールダウン秒数が不正（30〜600 の範囲外、または 30 の倍数でない） |
 | `YOUTUBE_API_ERROR` | 503 | チャンネル同期中にYouTube APIがエラーを返した |
 | `OAUTH_TOKEN_INVALID` | 503 | OAuthトークンが無効・失効している |
 

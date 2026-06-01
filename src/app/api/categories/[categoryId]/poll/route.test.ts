@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type DeepMockProxy, mockReset } from 'vitest-mock-extended'
 
-import { MANUAL_POLLING_COOLDOWN_SECONDS } from '@/lib/config'
+import { DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS } from '@/lib/config'
 import { buildRequest } from '@/tests/helpers/request-helper'
 
 type MockPrisma = DeepMockProxy<PrismaClient>
@@ -86,6 +86,7 @@ describe('POST /api/categories/[categoryId]/poll', () => {
   it('カテゴリが存在しない場合 404 を返す', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue(null)
+    prismaMock.userSetting.findUnique.mockResolvedValue(null)
     const request = buildRequest('/api/categories/cat-1/poll', { method: 'POST' })
 
     const response = await POST(request, context)
@@ -98,6 +99,9 @@ describe('POST /api/categories/[categoryId]/poll', () => {
   it('クォータ枯渇の場合 503 QUOTA_EXHAUSTED を返す', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    prismaMock.userSetting.findUnique.mockResolvedValue({
+      manualPollCooldownSeconds: 300,
+    } as never)
     mockRedisExists.mockResolvedValue(1) // quota exhausted
     mockRedisTtl.mockResolvedValue(-2)
 
@@ -110,11 +114,14 @@ describe('POST /api/categories/[categoryId]/poll', () => {
     expect(body.error.code).toBe('QUOTA_EXHAUSTED')
   })
 
-  it('クールダウン中の場合 429 POLLING_COOLDOWN を返す', async () => {
+  it('クールダウン中の場合 429 POLLING_COOLDOWN を返す（ユーザー設定値をメッセージに反映）', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    prismaMock.userSetting.findUnique.mockResolvedValue({
+      manualPollCooldownSeconds: 90,
+    } as never)
     mockRedisExists.mockResolvedValue(0) // no quota exhaustion
-    mockRedisTtl.mockResolvedValue(180) // 180 seconds remaining
+    mockRedisTtl.mockResolvedValue(60) // 60 seconds remaining
 
     const request = buildRequest('/api/categories/cat-1/poll', { method: 'POST' })
 
@@ -123,12 +130,16 @@ describe('POST /api/categories/[categoryId]/poll', () => {
     expect(response.status).toBe(429)
     const body = await response.json()
     expect(body.error.code).toBe('POLLING_COOLDOWN')
-    expect(body.error.retryAfter).toBe(180)
+    expect(body.error.retryAfter).toBe(60)
+    expect(body.error.message).toBe('手動ポーリングは1分30秒間隔でのみ実行できます')
   })
 
   it('正常にキュー追加して queued: true を返す', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    prismaMock.userSetting.findUnique.mockResolvedValue({
+      manualPollCooldownSeconds: 300,
+    } as never)
     mockRedisExists.mockResolvedValue(0)
     mockRedisTtl.mockResolvedValue(-2) // no cooldown
     mockRedisSet.mockResolvedValue('OK')
@@ -143,9 +154,12 @@ describe('POST /api/categories/[categoryId]/poll', () => {
     expect(body).toEqual({ queued: true })
   })
 
-  it('Redis cooldown key を正しく SET する', async () => {
+  it('Redis cooldown key にユーザー設定の cooldown 秒数を TTL として SET する', async () => {
     mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
     prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    prismaMock.userSetting.findUnique.mockResolvedValue({
+      manualPollCooldownSeconds: 60,
+    } as never)
     mockRedisExists.mockResolvedValue(0)
     mockRedisTtl.mockResolvedValue(-2)
     mockRedisSet.mockResolvedValue('OK')
@@ -159,7 +173,28 @@ describe('POST /api/categories/[categoryId]/poll', () => {
       'manual-poll:cooldown:cat-1',
       '1',
       'EX',
-      MANUAL_POLLING_COOLDOWN_SECONDS,
+      60,
+    )
+  })
+
+  it('UserSetting が存在しない場合はデフォルト値 (300) を TTL として SET する', async () => {
+    mockGetAuthenticatedSession.mockResolvedValue(mockAuth)
+    prismaMock.category.findFirst.mockResolvedValue({ id: 'cat-1' } as never)
+    prismaMock.userSetting.findUnique.mockResolvedValue(null)
+    mockRedisExists.mockResolvedValue(0)
+    mockRedisTtl.mockResolvedValue(-2)
+    mockRedisSet.mockResolvedValue('OK')
+    mockQueueAdd.mockResolvedValue(undefined)
+
+    const request = buildRequest('/api/categories/cat-1/poll', { method: 'POST' })
+
+    await POST(request, context)
+
+    expect(mockRedisSet).toHaveBeenCalledWith(
+      'manual-poll:cooldown:cat-1',
+      '1',
+      'EX',
+      DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
     )
   })
 })

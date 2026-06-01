@@ -173,6 +173,7 @@ describe('bullmq-helpers', () => {
         userId: 'user-1',
         pollingIntervalMinutes: 60,
         contentRetentionDays: 60,
+        manualPollCooldownSeconds: 300,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

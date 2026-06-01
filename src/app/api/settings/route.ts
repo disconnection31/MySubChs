@@ -3,11 +3,13 @@ import { NextResponse } from 'next/server'
 import {
   getAuthenticatedSession,
   isValidContentRetentionDays,
+  isValidManualPollCooldownSeconds,
   isValidPollingInterval,
 } from '@/lib/api-helpers'
 import { bulkUpdateGlobalInterval } from '@/lib/bullmq-helpers'
 import {
   DEFAULT_CONTENT_RETENTION_DAYS,
+  DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
   DEFAULT_POLLING_INTERVAL_MINUTES,
   REDIS_KEY_QUOTA_EXHAUSTED,
   YOUTUBE_QUOTA_DAILY_LIMIT,
@@ -35,6 +37,7 @@ export async function GET() {
           userId: auth.userId,
           pollingIntervalMinutes: DEFAULT_POLLING_INTERVAL_MINUTES,
           contentRetentionDays: DEFAULT_CONTENT_RETENTION_DAYS,
+          manualPollCooldownSeconds: DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
         },
       }),
       prisma.category.findMany({
@@ -78,6 +81,7 @@ export async function GET() {
     return NextResponse.json({
       pollingIntervalMinutes: userSetting.pollingIntervalMinutes,
       contentRetentionDays: userSetting.contentRetentionDays,
+      manualPollCooldownSeconds: userSetting.manualPollCooldownSeconds,
       estimatedDailyQuota,
       quotaWarningThreshold: YOUTUBE_QUOTA_WARNING_THRESHOLD,
       quotaDailyLimit: YOUTUBE_QUOTA_DAILY_LIMIT,
@@ -98,13 +102,18 @@ export async function PATCH(request: Request) {
 
   try {
     const body: unknown = await request.json()
-    const { pollingIntervalMinutes, contentRetentionDays } = body as {
+    const { pollingIntervalMinutes, contentRetentionDays, manualPollCooldownSeconds } = body as {
       pollingIntervalMinutes?: number
       contentRetentionDays?: number
+      manualPollCooldownSeconds?: number
     }
 
     // At least one field must be specified
-    if (pollingIntervalMinutes === undefined && contentRetentionDays === undefined) {
+    if (
+      pollingIntervalMinutes === undefined &&
+      contentRetentionDays === undefined &&
+      manualPollCooldownSeconds === undefined
+    ) {
       return errorResponse(
         ErrorCode.VALIDATION_ERROR,
         '更新するフィールドを少なくとも1つ指定してください',
@@ -130,13 +139,32 @@ export async function PATCH(request: Request) {
       )
     }
 
+    // Validate manualPollCooldownSeconds
+    if (
+      manualPollCooldownSeconds !== undefined &&
+      !isValidManualPollCooldownSeconds(manualPollCooldownSeconds)
+    ) {
+      return errorResponse(
+        ErrorCode.INVALID_MANUAL_POLL_COOLDOWN_SECONDS,
+        '手動ポーリングのクールダウン秒数が不正です。30〜600 の範囲かつ 30 の倍数を指定してください',
+        400,
+      )
+    }
+
     // Build update data
-    const updateData: { pollingIntervalMinutes?: number; contentRetentionDays?: number } = {}
+    const updateData: {
+      pollingIntervalMinutes?: number
+      contentRetentionDays?: number
+      manualPollCooldownSeconds?: number
+    } = {}
     if (pollingIntervalMinutes !== undefined) {
       updateData.pollingIntervalMinutes = pollingIntervalMinutes
     }
     if (contentRetentionDays !== undefined) {
       updateData.contentRetentionDays = contentRetentionDays
+    }
+    if (manualPollCooldownSeconds !== undefined) {
+      updateData.manualPollCooldownSeconds = manualPollCooldownSeconds
     }
 
     // Ensure UserSetting exists (defensive upsert)
@@ -149,6 +177,8 @@ export async function PATCH(request: Request) {
           pollingIntervalMinutes ?? DEFAULT_POLLING_INTERVAL_MINUTES,
         contentRetentionDays:
           contentRetentionDays ?? DEFAULT_CONTENT_RETENTION_DAYS,
+        manualPollCooldownSeconds:
+          manualPollCooldownSeconds ?? DEFAULT_MANUAL_POLL_COOLDOWN_SECONDS,
       },
     })
 
@@ -165,6 +195,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({
       pollingIntervalMinutes: userSetting.pollingIntervalMinutes,
       contentRetentionDays: userSetting.contentRetentionDays,
+      manualPollCooldownSeconds: userSetting.manualPollCooldownSeconds,
     })
   } catch (error) {
     console.error('[settings] PATCH error:', error)
